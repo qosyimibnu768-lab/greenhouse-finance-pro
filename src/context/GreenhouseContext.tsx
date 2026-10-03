@@ -525,7 +525,13 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         }
       };
       eventSource.onerror = () => {
-        // reconnect
+        // Server tidak mendukung SSE (mis. hosting serverless) —
+        // tutup koneksi dan andalkan polling berkala.
+        try {
+          eventSource?.close();
+        } catch {
+          // abaikan
+        }
       };
     } catch {
       // fallback
@@ -547,7 +553,7 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           }
         })
         .catch(() => {});
-    }, 3500);
+    }, 10000);
     return () => clearInterval(timer);
   }, [refreshData]);
 

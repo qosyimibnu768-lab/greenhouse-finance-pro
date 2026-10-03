@@ -44,7 +44,33 @@ Server melayani frontend (hasil build `dist/`) dan API dalam satu port (`PORT`, 
 
 ## 3. Deploy Online
 
-### Opsi A — Render.com (paling mudah)
+### Opsi A — Vercel (sinkronisasi HP ↔ PC penuh)
+
+Di Vercel, aplikasi berjalan sebagai **frontend statis + Vercel Serverless Functions** (`folder api/`) + penyimpanan **Vercel Blob**.
+
+1. Push proyek ke GitHub (Vercel akan otomatis build & deploy):
+
+   ```bash
+   git add -A
+   git commit -m "Update aplikasi"
+   git push
+   ```
+
+2. Buka [Vercel Dashboard](https://vercel.com) → pilih project ini → tab **Storage** → **Create** → pilih **Blob** → hubungkan ke project (centang environment **Production**, dan **Preview** bila perlu).
+
+3. Buka tab **Deployments** → deployment terakhir → menu **⋯** → **Redeploy** (agar variabel penyimpanan ikut aktif ke fungsi).
+
+4. Selesai. Klik tombol **Sinkron** di aplikasi — jika muncul toast *"Sinkronisasi Berhasil"*, sinkronisasi multi-perangkat sudah aktif.
+
+> **Tanpa langkah 2–3:** aplikasi tetap berjalan normal di Vercel, tetapi data hanya
+> tersimpan di browser masing-masing (localStorage) dan tombol Sinkron menampilkan
+> pesan gagal secara jujur. Tidak ada data yang hilang — begitu Blob dihubungkan dan
+> ada perubahan data, sinkronisasi langsung berjalan.
+>
+> **Batas ukuran:** serverless Vercel membatasi body request ±4,5 MB per penyimpanan.
+> Hindari menyimpan banyak foto nota berukuran besar agar database tetap ringan.
+
+### Opsi B — Render.com (server Express penuh, tanpa Blob)
 
 1. Upload folder proyek ini ke sebuah repository GitHub.
 2. Buka <https://render.com> → **New** → **Web Service** → pilih repo tersebut.
@@ -60,7 +86,7 @@ Server melayani frontend (hasil build `dist/`) dan API dalam satu port (`PORT`, 
 > (mount ke `data/`) — tersedia di paket berbayar Render. Tanpa disk, data akan
 > kembali ke contoh awal setiap kali server restart (paket free).
 
-### Opsi B — Railway / Fly.io / VPS (pakai Docker)
+### Opsi C — Railway / Fly.io / VPS (pakai Docker)
 
 Proyek ini sudah dilengkapi `Dockerfile`:
 
@@ -70,28 +96,29 @@ docker run -p 3000:3000 -v gfp-data:/app/data greenhouse-finance-pro
 ```
 
 - `-v gfp-data:/app/data` membuat volume agar data tersimpan permanen.
-- Cocok untuk Railway, Fly.io, VPS (Vercel/Netlify tidak cocok karena butuh server Node).
+- Cocok untuk Railway, Fly.io, VPS.
 
 ### Environment Variable
 
-| Variabel           | Wajib | Keterangan                                    |
-| ------------------ | ----- | --------------------------------------------- |
-| `PORT`             | Tidak | Port server (default `3000`; hosting mengisi otomatis) |
-| `NODE_ENV`         | Ya (saat deploy) | Set `production` agar frontend di-serve dari `dist/` |
-| `GEMINI_API_KEY`   | Tidak | Mengaktifkan fitur AI (parser suara)           |
+| Variabel         | Wajib            | Keterangan                                              |
+| ---------------- | ---------------- | ------------------------------------------------------- |
+| `PORT`           | Tidak            | Port server (default `3000`; hosting mengisi otomatis)  |
+| `NODE_ENV`       | Ya (Express)     | Set `production` agar frontend di-serve dari `dist/`    |
+| `GEMINI_API_KEY` | Tidak            | Mengaktifkan fitur AI (parser suara)                    |
+| `BLOB_*`         | Otomatis (Vercel) | Diisi otomatis oleh Vercel saat Blob store dihubungkan |
 
 ---
 
 ## 4. API Server (untuk Integrasi Lanjutan)
 
-Semua endpoint ini aktif saat aplikasi dijalankan lewat server Node (`npm run dev` / `npm start` / Docker):
+Endpoint tersedia di server Express (lokal/Render/Docker) **dan** di Vercel sebagai Serverless Functions (folder `api/`):
 
 | Endpoint | Metode | Fungsi |
 | --- | --- | --- |
 | `/api/health` | GET | Status server |
 | `/api/database` | GET / POST | Baca / simpan seluruh database |
 | `/api/sync/version` | GET | Nomor versi data (untuk sinkronisasi) |
-| `/api/sync/events` | GET | Server-Sent Events (sinkron real-time) |
+| `/api/sync/events` | GET | SSE real-time (di Vercel otomatis beralih ke polling) |
 | `/api/database/reset` | POST | Kembalikan ke data demo (`greenhouse_db.seed.json`) |
 | `/api/database/clear` | POST | Kosongkan semua data |
 | `/api/sync/sheets` | POST | Proxy kirim data ke webhook Google Sheets |
@@ -105,19 +132,31 @@ curl -X POST "http://localhost:3000/api/shortcuts/voice" \
   -d '{"text": "Pengeluaran 150 ribu beli nutrisi AB Mix siklus 1"}'
 ```
 
-> Catatan: hosting statis seperti Vercel/Netlify tidak menjalankan Express, sehingga endpoint di atas
-> tidak tersedia dan data hanya tersimpan di browser (localStorage). Untuk sinkronisasi
-> HP ↔ PC, deploy lewat Render/Railway/Docker.
+> Di Vercel, endpoint di atas membutuhkan Blob store. Bila belum dihubungkan,
+> endpoint membalas `503` dengan pesan yang jelas dan aplikasi otomatis memakai
+> data lokal di browser.
 
 ---
 
 ## 5. Struktur Singkat
 
 ```
-├── server.ts              # Server Express (API + serve frontend)
-├── src/                   # Kode React (halaman, komponen, context)
-├── data/greenhouse_db.json# Database JSON (tersimpan otomatis)
-├── Dockerfile             # Siap deploy via Docker
-├── render.yaml            # Konfigurasi deploy Render.com
-└── Jalankan Aplikasi.bat  # Peluncur lokal Windows
+├── server.ts               # Server Express (lokal / Render / Docker)
+├── server-lib/             # Parser suara & penyimpanan (dipakai bersama)
+├── api/                    # Vercel Serverless Functions (produksi Vercel)
+├── src/                    # Kode React (halaman, komponen, context)
+├── data/greenhouse_db.json      # Database lokal
+├── data/greenhouse_db.seed.json # Data demo untuk fitur reset
+├── vercel.json             # Konfigurasi deploy Vercel
+├── Dockerfile              # Siap deploy via Docker
+├── render.yaml             # Konfigurasi deploy Render.com
+└── Jalankan Aplikasi.bat   # Peluncur lokal Windows
+```
+
+---
+
+## 6. Pengujian Endpoint (opsional)
+
+```bash
+npm run test:api   # menguji semua endpoint serverless (19 skenario)
 ```
