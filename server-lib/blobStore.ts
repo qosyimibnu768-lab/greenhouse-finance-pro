@@ -14,7 +14,7 @@ import fs from 'fs';
 import path from 'path';
 import { SEED_DATABASE } from './seed.js';
 
-const BLOB_PATHNAME = 'greenhouse-finance-pro/database.json';
+const BLOB_PATHNAME = process.env.GFP_BLOB_PATH || 'greenhouse-finance-pro/database-v2.json';
 const ENVELOPE_VERSION = 1;
 
 export type PersistenceMode = 'blob' | 'local-file' | 'unconfigured';
