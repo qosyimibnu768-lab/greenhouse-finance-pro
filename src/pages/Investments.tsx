@@ -132,6 +132,33 @@ export const InvestmentsPage: React.FC = () => {
     });
   }, [db.investments, selectedCategory]);
 
+  // Spesifikasi greenhouse mengikuti data pada menu Manajemen GH (daftar Tunnel).
+  // Jika seluruh data dikosongkan, teks ini otomatis hilang.
+  const greenhouseSpec = useMemo(() => {
+    const tunnels = db.tunnels || [];
+    if (tunnels.length === 0) return '';
+
+    const totalWidth = tunnels.reduce((sum, t) => sum + (Number(t.widthM) || 0), 0);
+    const maxLength = Math.max(...tunnels.map((t) => Number(t.lengthM) || 0));
+    const totalCapacity = tunnels.reduce((sum, t) => sum + (Number(t.capacityPlants) || 0), 0);
+    const materials = Array.from(
+      new Set(tunnels.map((t) => (t.structureMaterial || '').trim()).filter(Boolean))
+    ).join(' & ');
+    const systems = Array.from(
+      new Set(tunnels.map((t) => (t.systemType || '').trim()).filter(Boolean))
+    ).join(' & ');
+    const tunnelDetails = tunnels.map((t) => `${t.name} (${t.widthM}×${t.lengthM}m)`).join(' & ');
+
+    const parts: string[] = [];
+    parts.push(`Greenhouse${materials ? ` ${materials}` : ''} ${tunnels.length} Tunnel (${totalWidth} × ${maxLength} m)`);
+    if (tunnelDetails) parts.push(tunnelDetails);
+    const capacityText = totalCapacity > 0 ? `Kapasitas ${totalCapacity.toLocaleString('id-ID')} Tanaman` : '';
+    if (systems && capacityText) parts.push(`Sistem ${systems} ${capacityText}`);
+    else if (systems) parts.push(`Sistem ${systems}`);
+    else if (capacityText) parts.push(capacityText);
+    return parts.join(' · ');
+  }, [db.tunnels]);
+
   return (
     <div className="space-y-6 pb-20">
       {/* Top Banner */}
@@ -143,9 +170,11 @@ export const InvestmentsPage: React.FC = () => {
           <h2 className="text-2xl font-black text-slate-900 mt-0.5 font-mono">
             {formatCurrency(metrics.totalInvestasi)}
           </h2>
-          <p className="text-xs text-slate-500 mt-1">
-            Greenhouse Bambu Petung 2 Tunnel (15 × 48 m) · Tunnel 1 (8×48m) & Tunnel 2 (7×48m) · Sistem DFT Kapasitas 2.000 Tanaman
-          </p>
+          {greenhouseSpec && (
+            <p className="text-xs text-slate-500 mt-1">
+              {greenhouseSpec}
+            </p>
+          )}
         </div>
         <div className="flex items-center gap-2">
           <button

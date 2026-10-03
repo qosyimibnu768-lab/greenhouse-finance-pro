@@ -151,7 +151,7 @@ export const MobileNavDrawer: React.FC<MobileNavDrawerProps> = ({
             </div>
             <div>
               <h2 className="font-extrabold text-sm text-white leading-tight">Greenhouse Finance Pro</h2>
-              <p className="text-[10px] text-emerald-400 font-medium">Sistem DFT Terintegrasi</p>
+              <p className="text-[10px] text-emerald-400 font-medium">Tarno Jaya Farm</p>
             </div>
           </div>
           <button
