@@ -219,6 +219,11 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     return INITIAL_DATABASE;
   });
 
+  // Ref yang selalu berisi data terbaru — dipakai saat inisialisasi cloud
+  // (Sinkron pertama ketika server masih kosong).
+  const dbRef = useRef<GreenhouseDatabase>(db);
+  dbRef.current = db;
+
   const [loading] = useState(false);
   const [toasts, setToasts] = useState<ToastMessage[]>([]);
 
@@ -490,6 +495,27 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           } catch {}
           setLastSyncTime(new Date().toISOString());
           return true;
+        }
+      }
+      if (res.status === 404) {
+        // Cloud belum berisi data — jadikan data perangkat ini sebagai sumber awal,
+        // sehingga tombol "Sinkron" pertama berhasil (tidak lagi menampilkan gagal).
+        try {
+          const pushRes = await fetch('/api/database', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(dbRef.current),
+          });
+          if (pushRes.ok) {
+            const result = await pushRes.json().catch(() => null);
+            if (result?.version) {
+              lastSeenVersionRef.current = result.version;
+            }
+            setLastSyncTime(new Date().toISOString());
+            return true;
+          }
+        } catch {
+          // Gagal unggah — perlakukan seperti offline
         }
       }
       return false;

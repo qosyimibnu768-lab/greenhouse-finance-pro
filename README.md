@@ -65,7 +65,8 @@ Di Vercel, aplikasi berjalan sebagai **frontend statis + Vercel Serverless Funct
 > **Tanpa langkah 2–3:** aplikasi tetap berjalan normal di Vercel, tetapi data hanya
 > tersimpan di browser masing-masing (localStorage) dan tombol Sinkron menampilkan
 > pesan gagal secara jujur. Tidak ada data yang hilang — begitu Blob dihubungkan dan
-> ada perubahan data, sinkronisasi langsung berjalan.
+> aplikasi dibuka, data perangkat itu otomatis diunggah sebagai sumber awal cloud
+> (atau menarik data terbaru bila cloud sudah berisi).
 >
 > **Batas ukuran:** serverless Vercel membatasi body request ±4,5 MB per penyimpanan.
 > Hindari menyimpan banyak foto nota berukuran besar agar database tetap ringan.
