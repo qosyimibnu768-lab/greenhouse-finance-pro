@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: greenhouse-finance-pro
+    runtime: node
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: NODE_VERSION
+        value: "22"
+      # GEMINI_API_KEY opsional, isi jika fitur AI (suara) ingin aktif:
+      # - key: GEMINI_API_KEY
+      #   sync: false
+    # Disk permanen agar data tidak hilang saat restart/redeploy.
+    # Catatan: disk memerlukan paket berbayar di Render. Hapus bagian ini jika pakai paket free.
+    disk:
+      name: greenhouse-data
+      mountPath: /opt/render/project/src/data
+      sizeGB: 1
