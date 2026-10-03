@@ -545,7 +545,15 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   useEffect(() => {
     const timer = setInterval(() => {
       fetch('/api/sync/version')
-        .then((r) => r.json())
+        .then((r) => {
+          if (r.status === 503) {
+            // Server sinkronisasi belum siap (mis. Blob belum dihubungkan) —
+            // hentikan polling agar tidak membebani server.
+            clearInterval(timer);
+            return null;
+          }
+          return r.json();
+        })
         .then((res) => {
           if (res?.version && res.version !== lastSeenVersionRef.current) {
             lastSeenVersionRef.current = res.version;

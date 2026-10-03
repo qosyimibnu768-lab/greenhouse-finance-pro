@@ -41,6 +41,50 @@ function localFilePath(): string {
   return process.env.GFP_LOCAL_DB || path.join(process.cwd(), 'data', 'greenhouse_db.json');
 }
 
+/**
+ * Access memori (per instance function) untuk menghindari percobaan berulang.
+ * Blob store bisa dibuat sebagai Public atau Private — kode mendeteksi otomatis.
+ */
+let cachedBlobAccess: 'public' | 'private' | null = null;
+
+async function blobGetPayload(): Promise<any | null> {
+  const modes: Array<'public' | 'private'> = cachedBlobAccess ? [cachedBlobAccess] : ['public', 'private'];
+  for (const access of modes) {
+    try {
+      const result = await get(BLOB_PATHNAME, { access, useCache: false });
+      if (result && result.statusCode === 200 && result.stream) {
+        cachedBlobAccess = access;
+        const text = await new Response(result.stream as ReadableStream).text();
+        return JSON.parse(text);
+      }
+    } catch {
+      // Mode akses tidak cocok — coba mode berikutnya
+    }
+  }
+  return null;
+}
+
+async function blobPutPayload(text: string): Promise<void> {
+  const modes: Array<'public' | 'private'> = cachedBlobAccess ? [cachedBlobAccess] : ['public', 'private'];
+  let lastError: any = null;
+  for (const access of modes) {
+    try {
+      await put(BLOB_PATHNAME, text, {
+        access,
+        allowOverwrite: true,
+        addRandomSuffix: false,
+        contentType: 'application/json',
+        cacheControlMaxAge: 60,
+      });
+      cachedBlobAccess = access;
+      return;
+    } catch (error) {
+      lastError = error;
+    }
+  }
+  throw lastError || new Error('Gagal menyimpan ke Vercel Blob');
+}
+
 export async function readEnvelope(): Promise<DbEnvelope | null> {
   const mode = persistenceMode();
 
@@ -63,12 +107,10 @@ export async function readEnvelope(): Promise<DbEnvelope | null> {
   if (mode !== 'blob') return null;
 
   try {
-    const result = await get(BLOB_PATHNAME, { access: 'public', useCache: false });
-    if (!result || result.statusCode !== 200 || !result.stream) return null;
+    const parsed = await blobGetPayload();
+    if (!parsed || typeof parsed !== 'object') return null;
 
-    const text = await new Response(result.stream as ReadableStream).text();
-    const parsed = JSON.parse(text);
-    if (parsed && typeof parsed === 'object' && parsed.envelopeVersion && parsed.data) {
+    if (parsed.envelopeVersion && parsed.data) {
       return parsed as DbEnvelope;
     }
     // Kompatibilitas: data lama tersimpan sebagai database mentah
@@ -109,13 +151,7 @@ export async function writeEnvelope(data: any): Promise<number> {
     data,
   };
 
-  await put(BLOB_PATHNAME, JSON.stringify(envelope), {
-    access: 'public',
-    allowOverwrite: true,
-    addRandomSuffix: false,
-    contentType: 'application/json',
-    cacheControlMaxAge: 60,
-  });
+  await blobPutPayload(JSON.stringify(envelope));
 
   return version;
 }

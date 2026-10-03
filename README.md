@@ -56,7 +56,7 @@ Di Vercel, aplikasi berjalan sebagai **frontend statis + Vercel Serverless Funct
    git push
    ```
 
-2. Buka [Vercel Dashboard](https://vercel.com) → pilih project ini → tab **Storage** → **Create** → pilih **Blob** → hubungkan ke project (centang environment **Production**, dan **Preview** bila perlu).
+2. Buka [Vercel Dashboard](https://vercel.com) → pilih project ini → tab **Storage** → **Create** → pilih **Blob** → buat store dengan akses **Private** (disarankan untuk data keuangan) atau **Public** — keduanya dideteksi otomatis oleh aplikasi — lalu hubungkan ke project (centang environment **Production**, dan **Preview** bila perlu).
 
 3. Buka tab **Deployments** → deployment terakhir → menu **⋯** → **Redeploy** (agar variabel penyimpanan ikut aktif ke fungsi).
 
