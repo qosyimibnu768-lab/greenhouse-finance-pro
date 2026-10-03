@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { useGreenhouse } from '../context/GreenhouseContext';
 import { Investment, InvestmentCategory, TunnelType } from '../types';
 import { formatCurrency, formatDate } from '../utils/formatters';
+import { buildGreenhouseSpecLine } from '../utils/greenhouseSpec';
 import {
   Landmark,
   Plus,
@@ -132,32 +133,9 @@ export const InvestmentsPage: React.FC = () => {
     });
   }, [db.investments, selectedCategory]);
 
-  // Spesifikasi greenhouse mengikuti data pada menu Manajemen GH (daftar Tunnel).
+  // Spesifikasi greenhouse mengikuti data pada menu Manajemen GH.
   // Jika seluruh data dikosongkan, teks ini otomatis hilang.
-  const greenhouseSpec = useMemo(() => {
-    const tunnels = db.tunnels || [];
-    if (tunnels.length === 0) return '';
-
-    const totalWidth = tunnels.reduce((sum, t) => sum + (Number(t.widthM) || 0), 0);
-    const maxLength = Math.max(...tunnels.map((t) => Number(t.lengthM) || 0));
-    const totalCapacity = tunnels.reduce((sum, t) => sum + (Number(t.capacityPlants) || 0), 0);
-    const materials = Array.from(
-      new Set(tunnels.map((t) => (t.structureMaterial || '').trim()).filter(Boolean))
-    ).join(' & ');
-    const systems = Array.from(
-      new Set(tunnels.map((t) => (t.systemType || '').trim()).filter(Boolean))
-    ).join(' & ');
-    const tunnelDetails = tunnels.map((t) => `${t.name} (${t.widthM}×${t.lengthM}m)`).join(' & ');
-
-    const parts: string[] = [];
-    parts.push(`Greenhouse${materials ? ` ${materials}` : ''} ${tunnels.length} Tunnel (${totalWidth} × ${maxLength} m)`);
-    if (tunnelDetails) parts.push(tunnelDetails);
-    const capacityText = totalCapacity > 0 ? `Kapasitas ${totalCapacity.toLocaleString('id-ID')} Tanaman` : '';
-    if (systems && capacityText) parts.push(`Sistem ${systems} ${capacityText}`);
-    else if (systems) parts.push(`Sistem ${systems}`);
-    else if (capacityText) parts.push(capacityText);
-    return parts.join(' · ');
-  }, [db.tunnels]);
+  const greenhouseSpec = useMemo(() => buildGreenhouseSpecLine(db.tunnels || []), [db.tunnels]);
 
   return (
     <div className="space-y-6 pb-20">

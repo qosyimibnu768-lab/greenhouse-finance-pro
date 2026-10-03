@@ -3,6 +3,7 @@ import autoTable from 'jspdf-autotable';
 import { GreenhouseDatabase } from '../types';
 import { FinancialMetrics } from '../context/GreenhouseContext';
 import { formatCurrency, formatNumber, formatPercent, formatDate } from './formatters';
+import { getStructureMaterials, getSystemTypes } from './greenhouseSpec';
 
 export interface ExportOptions {
   companyName?: string;
@@ -60,6 +61,8 @@ export const exportFinancialReportToCSV = (
   const companyName = options?.companyName || 'Greenhouse Melon DFT';
   const tunnels = db.tunnels || [];
   const totalCapacity = tunnels.reduce((a, b) => a + (Number(b.capacityPlants) || 0), 0);
+  const materials = getStructureMaterials(tunnels);
+  const systems = getSystemTypes(tunnels);
 
   const rows: string[] = [];
 
@@ -67,7 +70,7 @@ export const exportFinancialReportToCSV = (
   rows.push(`${escapeCSV(companyName)}`);
   rows.push(`${escapeCSV('LAPORAN KEUANGAN & ANALISIS ROI USAHA MELON')}`);
   rows.push(`${escapeCSV(`Tanggal Cetak: ${dateStr}`)}`);
-  rows.push(`${escapeCSV(`Spesifikasi: ${tunnels.length} Unit Tunnel · Kapasitas ${totalCapacity} Tanaman`)}`);
+  rows.push(`${escapeCSV(`Spesifikasi: ${tunnels.length} Unit Greenhouse · Kapasitas ${totalCapacity} Tanaman`)}`);
   rows.push('');
 
   // SECTION 1: RINGKASAN EKSEKUTIF & ROI
@@ -75,7 +78,7 @@ export const exportFinancialReportToCSV = (
   rows.push([escapeCSV('Indikator'), escapeCSV('Nilai'), escapeCSV('Keterangan')].join(','));
   rows.push([escapeCSV('Total Omzet / Pendapatan Penjualan'), escapeCSV(metrics.totalPemasukan), escapeCSV('Akumulasi hasil panen & penjualan melon')].join(','));
   rows.push([escapeCSV('Total Biaya Operasional (Opex)'), escapeCSV(metrics.totalBiayaOperasional), escapeCSV('Nutrisi AB Mix, benih, listrik, tenaga kerja, packing')].join(','));
-  rows.push([escapeCSV('Total Belanja Modal Investasi (Capex)'), escapeCSV(metrics.totalInvestasi), escapeCSV('Struktur bambu, plastik UV, instalasi DFT, tandon')].join(','));
+  rows.push([escapeCSV('Total Belanja Modal Investasi (Capex)'), escapeCSV(metrics.totalInvestasi), escapeCSV(`Struktur ${materials || 'greenhouse'}, plastik UV, instalasi ${systems || 'hidroponik'}, tandon`)].join(','));
   rows.push([escapeCSV('Laba Operasional Bersih'), escapeCSV(metrics.labaBersih), escapeCSV('Total Omzet - Biaya Operasional')].join(','));
   rows.push([escapeCSV('Arus Kas Bersih (Net Cash Flow)'), escapeCSV(metrics.saldoKas), escapeCSV('Saldo Kas = Omzet - (Opex + Capex)')].join(','));
   rows.push([escapeCSV('Modal yang Sudah Kembali (Payback)'), escapeCSV(metrics.modalKembali), escapeCSV('Akumulasi keuntungan yang menutup investasi awal')].join(','));
@@ -311,7 +314,7 @@ export const exportFinancialReportToPDF = (
   doc.setFontSize(7.5);
   doc.setTextColor(203, 213, 225); // Slate 300
   doc.text(
-    `Infrastruktur: ${tunnels.length} Unit Tunnel (${tunnels.map((t) => `${t.name}: ${t.widthM}x${t.lengthM}m`).join(' + ')}) · Kapasitas: ${totalCapacity.toLocaleString('id-ID')} Tanaman`,
+    `Infrastruktur: ${tunnels.length} Unit Greenhouse (${tunnels.map((t) => `${t.name}: ${t.widthM}x${t.lengthM}m`).join(' + ')}) · Kapasitas: ${totalCapacity.toLocaleString('id-ID')} Tanaman`,
     20,
     currentY + 22
   );

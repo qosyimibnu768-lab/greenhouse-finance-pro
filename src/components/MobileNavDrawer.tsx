@@ -83,7 +83,7 @@ export const MobileNavDrawer: React.FC<MobileNavDrawerProps> = ({
       items: [
         {
           key: 'tunnels',
-          label: 'Manajemen GH Tunnels',
+          label: 'Manajemen Greenhouse',
           icon: <Warehouse className="w-4 h-4" />,
           badge: tunnels.length > 0 ? `${tunnels.length} Unit` : undefined,
         },

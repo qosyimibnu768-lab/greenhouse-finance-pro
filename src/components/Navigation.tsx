@@ -82,7 +82,7 @@ export const Navigation: React.FC<NavigationProps> = ({
   if (tunnels.length > 0) {
     const sysName = uniqueSystems[0] || 'DFT Hydroponic';
     const varName = activeVarieties.length > 0 ? ` · ${activeVarieties[0]}` : '';
-    brandSubtitle = `${tunnels.length} Tunnel (${sysName}${varName})`;
+    brandSubtitle = `${tunnels.length} Unit (${sysName}${varName})`;
   } else if (activeVarieties.length > 0) {
     brandSubtitle = `Melon ${activeVarieties.join(', ')}`;
   }
@@ -144,7 +144,7 @@ export const Navigation: React.FC<NavigationProps> = ({
         {/* Spec Overview */}
         <div className="mt-4 p-2.5 rounded-xl bg-slate-800/60 border border-slate-700/60 text-xs text-slate-400">
           <div className="flex justify-between items-center text-[11px]">
-            <span className="text-slate-400">{tunnels.length} Unit Tunnel</span>
+            <span className="text-slate-400">{tunnels.length} Unit Greenhouse</span>
             <span className="text-emerald-400 font-semibold">{totalCapacity.toLocaleString('id-ID')} Tanaman</span>
           </div>
           <div className="flex justify-between items-center text-[11px] mt-1">

@@ -78,7 +78,7 @@ export const TunnelsPage: React.FC<TunnelsPageProps> = ({ onNavigateToCycles }) 
     setEditingTunnel(null);
     const nextNumber = tunnels.length + 1;
     setFormData({
-      name: `Tunnel ${nextNumber}`,
+      name: `Greenhouse ${nextNumber}`,
       lengthM: 48,
       widthM: 8,
       capacityPlants: 1000,
@@ -153,7 +153,7 @@ export const TunnelsPage: React.FC<TunnelsPageProps> = ({ onNavigateToCycles }) 
             </div>
             <h2 className="text-xl sm:text-2xl font-black tracking-tight">Manajemen Greenhouse</h2>
             <p className="text-xs sm:text-sm text-slate-300 mt-1 max-w-2xl">
-              Tambah, sesuaikan ukuran dimensi (P × L), kapasitas tanam, sistem DFT/NFT, serta kontrol status operasional seluruh unit tunnel perkebunan melon Anda.
+              Tambah, sesuaikan ukuran dimensi (P × L), kapasitas tanam, sistem DFT/NFT, serta kontrol status operasional seluruh unit greenhouse perkebunan melon Anda.
             </p>
           </div>
           <button
@@ -161,14 +161,14 @@ export const TunnelsPage: React.FC<TunnelsPageProps> = ({ onNavigateToCycles }) 
             className="flex items-center justify-center gap-2 px-5 py-3 rounded-xl bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs sm:text-sm shadow-lg shadow-emerald-950/40 transition active:scale-95 shrink-0 cursor-pointer"
           >
             <Plus className="w-4 h-4 stroke-[3]" />
-            <span>Tambah Tunnel Baru</span>
+            <span>Tambah Greenhouse Baru</span>
           </button>
         </div>
 
         {/* Quick Stat Highlights */}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mt-6 pt-5 border-t border-slate-700/60">
           <div className="p-3 rounded-xl bg-slate-800/60 border border-slate-700/50">
-            <span className="text-[11px] text-slate-400 block">Total Unit Tunnel</span>
+            <span className="text-[11px] text-slate-400 block">Total Unit Greenhouse</span>
             <div className="flex items-baseline gap-1.5 mt-0.5">
               <span className="text-lg sm:text-xl font-black text-white">{summary.totalTunnels}</span>
               <span className="text-xs text-emerald-400 font-medium">({summary.activeTunnels} Aktif)</span>
@@ -206,7 +206,7 @@ export const TunnelsPage: React.FC<TunnelsPageProps> = ({ onNavigateToCycles }) 
             type="text"
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            placeholder="Cari tunnel, sistem DFT, material bambu..."
+            placeholder="Cari greenhouse, sistem DFT, material bambu..."
             className="w-full pl-9 pr-4 py-2 text-xs bg-slate-50 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:bg-white transition"
           />
           {searchQuery && (
@@ -240,18 +240,18 @@ export const TunnelsPage: React.FC<TunnelsPageProps> = ({ onNavigateToCycles }) 
       {filteredTunnels.length === 0 ? (
         <div className="p-12 text-center bg-white rounded-2xl border border-slate-200 shadow-xs">
           <Warehouse className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-          <h3 className="font-bold text-slate-800 text-base">Tidak ada tunnel ditemukan</h3>
+          <h3 className="font-bold text-slate-800 text-base">Tidak ada greenhouse ditemukan</h3>
           <p className="text-xs text-slate-500 mt-1 max-w-md mx-auto">
             {searchQuery
-              ? 'Tidak ada tunnel yang cocok dengan kata kunci pencarian Anda.'
-              : 'Belum ada data tunnel. Silakan klik tombol "Tambah Tunnel Baru" untuk mulai menambahkan unit tunnel greenhouse.'}
+              ? 'Tidak ada greenhouse yang cocok dengan kata kunci pencarian Anda.'
+              : 'Belum ada data greenhouse. Silakan klik tombol "Tambah Greenhouse Baru" untuk mulai menambahkan unit greenhouse.'}
           </p>
           <button
             onClick={handleOpenAdd}
             className="mt-4 inline-flex items-center gap-2 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold transition cursor-pointer"
           >
             <Plus className="w-4 h-4" />
-            <span>Tambah Tunnel Baru</span>
+            <span>Tambah Greenhouse Baru</span>
           </button>
         </div>
       ) : (
@@ -308,14 +308,14 @@ export const TunnelsPage: React.FC<TunnelsPageProps> = ({ onNavigateToCycles }) 
                     <div className="flex items-center gap-1">
                       <button
                         onClick={() => handleOpenEdit(tunnel)}
-                        title="Edit Tunnel"
+                        title="Edit Greenhouse"
                         className="p-1.5 rounded-lg text-slate-400 hover:text-emerald-700 hover:bg-emerald-50 transition cursor-pointer"
                       >
                         <Edit2 className="w-4 h-4" />
                       </button>
                       <button
                         onClick={() => setTunnelToDelete(tunnel)}
-                        title="Hapus Tunnel"
+                        title="Hapus Greenhouse"
                         className="p-1.5 rounded-lg text-slate-400 hover:text-rose-600 hover:bg-rose-50 transition cursor-pointer"
                       >
                         <Trash2 className="w-4 h-4" />
@@ -440,7 +440,7 @@ export const TunnelsPage: React.FC<TunnelsPageProps> = ({ onNavigateToCycles }) 
                 </div>
                 <div>
                   <h3 className="font-extrabold text-base text-slate-900">
-                    {editingTunnel ? 'Edit Spesifikasi Tunnel' : 'Tambah Tunnel Baru'}
+                    {editingTunnel ? 'Edit Spesifikasi Greenhouse' : 'Tambah Greenhouse Baru'}
                   </h3>
                   <p className="text-xs text-slate-500">
                     {editingTunnel ? `Mengubah data unit ${editingTunnel.name}` : 'Masukkan data unit greenhouse baru'}
@@ -458,12 +458,12 @@ export const TunnelsPage: React.FC<TunnelsPageProps> = ({ onNavigateToCycles }) 
             <form onSubmit={handleSubmit} className="p-5 space-y-4 max-h-[75vh] overflow-y-auto">
               <div>
                 <label className="block text-xs font-bold text-slate-700 mb-1">
-                  Nama Unit Tunnel <span className="text-rose-500">*</span>
+                  Nama Unit Greenhouse <span className="text-rose-500">*</span>
                 </label>
                 <input
                   type="text"
                   required
-                  placeholder="Contoh: Tunnel 1, Tunnel 3, Tunnel Nursery"
+                  placeholder="Contoh: Greenhouse 1, Greenhouse 2, Greenhouse Nursery"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   className="w-full px-3.5 py-2 text-xs border border-slate-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500 font-medium"
@@ -524,7 +524,7 @@ export const TunnelsPage: React.FC<TunnelsPageProps> = ({ onNavigateToCycles }) 
                 </div>
                 <div>
                   <label className="block text-xs font-bold text-slate-700 mb-1">
-                    Status Tunnel <span className="text-rose-500">*</span>
+                    Status Greenhouse <span className="text-rose-500">*</span>
                   </label>
                   <select
                     value={formData.status}
@@ -590,7 +590,7 @@ export const TunnelsPage: React.FC<TunnelsPageProps> = ({ onNavigateToCycles }) 
                   type="submit"
                   className="px-5 py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold shadow-md shadow-emerald-900/20 transition active:scale-95 cursor-pointer"
                 >
-                  {editingTunnel ? 'Simpan Perubahan' : 'Tambah Tunnel'}
+                  {editingTunnel ? 'Simpan Perubahan' : 'Tambah Greenhouse'}
                 </button>
               </div>
             </form>
@@ -607,7 +607,7 @@ export const TunnelsPage: React.FC<TunnelsPageProps> = ({ onNavigateToCycles }) 
             </div>
             <h3 className="font-black text-lg text-slate-900">Hapus Unit {tunnelToDelete.name}?</h3>
             <p className="text-xs text-slate-500 mt-2 leading-relaxed">
-              Apakah Anda yakin ingin menghapus <span className="font-bold text-slate-800">{tunnelToDelete.name}</span> ({tunnelToDelete.widthM} × {tunnelToDelete.lengthM} m)? Tindakan ini akan menghapus data tunnel dari daftar unit greenhouse.
+              Apakah Anda yakin ingin menghapus <span className="font-bold text-slate-800">{tunnelToDelete.name}</span> ({tunnelToDelete.widthM} × {tunnelToDelete.lengthM} m)? Tindakan ini akan menghapus data unit dari daftar greenhouse.
             </p>
             <div className="mt-6 flex items-center justify-center gap-3">
               <button

@@ -288,7 +288,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
               <h3 className="font-extrabold text-base tracking-tight text-white">Status Pengembalian Modal & ROI</h3>
             </div>
             <p className="text-xs text-slate-400 mt-1">
-              Greenhouse {(db.tunnels || []).length} Tunnel · Total Kapasitas {((db.tunnels || []).reduce((a, b) => a + (Number(b.capacityPlants) || 0), 0)).toLocaleString('id-ID')} Tanaman DFT
+              Greenhouse {(db.tunnels || []).length} Unit · Total Kapasitas {((db.tunnels || []).reduce((a, b) => a + (Number(b.capacityPlants) || 0), 0)).toLocaleString('id-ID')} Tanaman DFT
             </p>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-left">
@@ -541,7 +541,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
               <Warehouse className="w-4 h-4" />
             </div>
             <div>
-              <h3 className="font-bold text-sm text-slate-900">Unit Tunnel Greenhouse</h3>
+              <h3 className="font-bold text-sm text-slate-900">Unit Greenhouse</h3>
               <p className="text-xs text-slate-500">
                 {(db.tunnels || []).length} Unit Terdaftar · Total Luas {(db.tunnels || []).reduce((acc, t) => acc + (t.lengthM * t.widthM), 0)} m² · {(db.tunnels || []).reduce((acc, t) => acc + (t.capacityPlants || 0), 0).toLocaleString('id-ID')} Tanaman
               </p>
@@ -551,7 +551,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
             onClick={() => onNavigate('tunnels')}
             className="text-xs font-bold text-emerald-700 hover:text-emerald-800 flex items-center gap-1 bg-emerald-50 hover:bg-emerald-100 px-3 py-1.5 rounded-xl border border-emerald-200/80 transition cursor-pointer"
           >
-            <span>Kelola / Tambah Tunnel</span>
+            <span>Kelola / Tambah Greenhouse</span>
             <ArrowRight className="w-3.5 h-3.5" />
           </button>
         </div>

@@ -58,9 +58,16 @@ import {
   Cell,
 } from 'recharts';
 import { HppPerTanamanAnalysis } from '../components/HppPerTanamanAnalysis';
+import { getStructureMaterials, getSystemTypes, getTotalCapacity } from '../utils/greenhouseSpec';
 
 export const ReportsPage: React.FC = () => {
   const { db, metrics, addToast } = useGreenhouse();
+
+  // Spesifikasi greenhouse mengikuti data Manajemen GH (kosong = teks ikut hilang)
+  const ghTunnels = db.tunnels || [];
+  const ghStructureMaterials = getStructureMaterials(ghTunnels);
+  const ghSystemTypes = getSystemTypes(ghTunnels);
+  const ghTotalCapacity = getTotalCapacity(ghTunnels);
   const [activeReportTab, setActiveReportTab] = useState<
     'labarugi' | 'hpp-tanaman' | 'bulanan' | 'cashflow' | 'siklus' | 'bep-roi'
   >('labarugi');
@@ -1159,7 +1166,7 @@ export const ReportsPage: React.FC = () => {
 
                 <div className="space-y-2 pl-7 font-mono">
                   <div className="flex justify-between items-center">
-                    <span className="font-sans">1. Struktur Rangka Bambu Petung Super, Tiang Cor & Reng</span>
+                    <span className="font-sans">1. Struktur Rangka {ghStructureMaterials ? `${ghStructureMaterials}, Tiang Cor & Reng` : 'Greenhouse'}</span>
                     <span className="font-medium text-slate-900">{formatCurrency(activePnLSummary.investasiStrukturBambu)}</span>
                   </div>
                   <div className="flex justify-between items-center">
@@ -1167,7 +1174,7 @@ export const ReportsPage: React.FC = () => {
                     <span className="font-medium text-slate-900">{formatCurrency(activePnLSummary.investasiPlastikNet)}</span>
                   </div>
                   <div className="flex justify-between items-center">
-                    <span className="font-sans">3. Talang Gully DFT Foodgrade, Pipa PVC & Tandon Air PE 5000L</span>
+                    <span className="font-sans">3. Talang Gully {ghSystemTypes || 'Hidroponik'} Foodgrade, Pipa PVC & Tandon Air PE 5000L</span>
                     <span className="font-medium text-slate-900">{formatCurrency(activePnLSummary.investasiInstalasiDft)}</span>
                   </div>
                   <div className="flex justify-between items-center">
@@ -1705,9 +1712,11 @@ export const ReportsPage: React.FC = () => {
                   Menghitung titik impas produksi dalam satuan Kilogram Melon dan Rupiah Omzet secara interaktif
                 </p>
               </div>
-              <span className="px-3 py-1 rounded-xl bg-emerald-50 text-emerald-800 text-xs font-bold border border-emerald-200 self-start sm:self-auto">
-                Model DFT 2.000 Pohon
-              </span>
+              {(ghSystemTypes || ghTotalCapacity > 0) && (
+                <span className="px-3 py-1 rounded-xl bg-emerald-50 text-emerald-800 text-xs font-bold border border-emerald-200 self-start sm:self-auto">
+                  Model {ghSystemTypes || 'Greenhouse'}{ghTotalCapacity > 0 ? ` ${ghTotalCapacity.toLocaleString('id-ID')} Pohon` : ''}
+                </span>
+              )}
             </div>
 
             {/* Input Parameters */}
