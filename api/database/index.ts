@@ -3,8 +3,8 @@
  * GET  → baca database
  * POST → simpan seluruh database (dipakai aplikasi setiap ada perubahan)
  */
-import { persistenceMode, readEnvelope, storageMessage, writeEnvelope } from '../../server-lib/blobStore';
-import { jsonResponse, readJsonBody } from '../../server-lib/http';
+import { persistenceMode, readEnvelope, storageMessage, writeEnvelope } from '../../server-lib/blobStore.js';
+import { jsonResponse, readJsonBody } from '../../server-lib/http.js';
 
 export async function GET(): Promise<Response> {
   if (persistenceMode() === 'unconfigured') {

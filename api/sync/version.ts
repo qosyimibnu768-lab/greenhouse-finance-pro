@@ -2,8 +2,8 @@
  * Vercel Serverless Function: /api/sync/version
  * GET → nomor versi data terbaru (dipakai polling sinkronisasi klien).
  */
-import { persistenceMode, readEnvelope, storageMessage } from '../../server-lib/blobStore';
-import { jsonResponse } from '../../server-lib/http';
+import { persistenceMode, readEnvelope, storageMessage } from '../../server-lib/blobStore.js';
+import { jsonResponse } from '../../server-lib/http.js';
 
 export async function GET(): Promise<Response> {
   if (persistenceMode() === 'unconfigured') {

@@ -2,9 +2,9 @@
  * Vercel Serverless Function: /api/database/reset
  * POST → kembalikan database ke data demo (seed).
  */
-import { persistenceMode, storageMessage, writeEnvelope } from '../../server-lib/blobStore';
-import { jsonResponse } from '../../server-lib/http';
-import { SEED_DATABASE } from '../../server-lib/seed';
+import { persistenceMode, storageMessage, writeEnvelope } from '../../server-lib/blobStore.js';
+import { jsonResponse } from '../../server-lib/http.js';
+import { SEED_DATABASE } from '../../server-lib/seed.js';
 
 export async function POST(): Promise<Response> {
   if (persistenceMode() === 'unconfigured') {

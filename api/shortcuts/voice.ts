@@ -3,13 +3,13 @@
  * GET  ?text=...        → parse perintah suara & catat transaksi (iPhone Shortcuts)
  * POST { "text": "..." } → sama, untuk web app & Siri
  */
-import { ensureEnvelope, persistenceMode, storageMessage, writeEnvelope } from '../../server-lib/blobStore';
-import { jsonResponse, readJsonBody } from '../../server-lib/http';
+import { ensureEnvelope, persistenceMode, storageMessage, writeEnvelope } from '../../server-lib/blobStore.js';
+import { jsonResponse, readJsonBody } from '../../server-lib/http.js';
 import {
   buildVoiceTransaction,
   computeBalanceFromTransactions,
   parseVoiceTransaction,
-} from '../../server-lib/voiceParser';
+} from '../../server-lib/voiceParser.js';
 
 async function handleVoiceRequest(text: string): Promise<Response> {
   if (!text || !text.trim()) {

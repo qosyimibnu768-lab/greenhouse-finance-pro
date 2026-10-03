@@ -12,7 +12,7 @@
 import { get, put } from '@vercel/blob';
 import fs from 'fs';
 import path from 'path';
-import { SEED_DATABASE } from './seed';
+import { SEED_DATABASE } from './seed.js';
 
 const BLOB_PATHNAME = 'greenhouse-finance-pro/database.json';
 const ENVELOPE_VERSION = 1;

@@ -2,8 +2,8 @@
  * Vercel Serverless Function: /api/database/clear
  * POST → kosongkan seluruh data usaha (mulai dari nol).
  */
-import { buildEmptyDatabase, persistenceMode, storageMessage, writeEnvelope } from '../../server-lib/blobStore';
-import { jsonResponse } from '../../server-lib/http';
+import { buildEmptyDatabase, persistenceMode, storageMessage, writeEnvelope } from '../../server-lib/blobStore.js';
+import { jsonResponse } from '../../server-lib/http.js';
 
 export async function POST(): Promise<Response> {
   if (persistenceMode() === 'unconfigured') {

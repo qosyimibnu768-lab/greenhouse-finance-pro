@@ -3,7 +3,7 @@
  * POST → proxy pengiriman payload ke webhook Google Apps Script
  * (menghindari masalah CORS saat dipanggil dari browser).
  */
-import { jsonResponse, readJsonBody } from '../../server-lib/http';
+import { jsonResponse, readJsonBody } from '../../server-lib/http.js';
 
 export async function POST(request: Request): Promise<Response> {
   const parsed = await readJsonBody(request);
