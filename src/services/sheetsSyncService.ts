@@ -85,7 +85,7 @@ export async function sendPayloadToSheets(webhookUrl: string, payload: any): Pro
     saveStoredLastSync(new Date().toISOString());
     return {
       success: true,
-      message: 'Permintaan terkirim ke Google Sheets (Mode Opaque)',
+      message: 'Permintaan terkirim ke Google Sheets (mode tanpa konfirmasi — silakan cek spreadsheet Anda)',
       timestamp: new Date().toISOString(),
     };
   } catch (directErr: any) {

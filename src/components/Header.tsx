@@ -47,12 +47,20 @@ export const Header: React.FC<HeaderProps> = ({
 
   const handleManualSync = async () => {
     try {
-      await refreshData(false);
-      addToast({
-        type: 'success',
-        title: 'Sinkronisasi Berhasil',
-        message: 'Data terbaru dari HP dan Web PC telah tersinkronisasi.',
-      });
+      const syncOk = await refreshData(false);
+      if (syncOk) {
+        addToast({
+          type: 'success',
+          title: 'Sinkronisasi Berhasil',
+          message: 'Data terbaru dari HP dan Web PC telah tersinkronisasi.',
+        });
+      } else {
+        addToast({
+          type: 'error',
+          title: 'Gagal Sinkronisasi',
+          message: 'Server sinkronisasi tidak terjangkau. Data Anda tetap aman di perangkat ini.',
+        });
+      }
     } catch {
       addToast({
         type: 'error',

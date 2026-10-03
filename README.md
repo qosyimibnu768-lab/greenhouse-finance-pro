@@ -82,7 +82,36 @@ docker run -p 3000:3000 -v gfp-data:/app/data greenhouse-finance-pro
 
 ---
 
-## 4. Struktur Singkat
+## 4. API Server (untuk Integrasi Lanjutan)
+
+Semua endpoint ini aktif saat aplikasi dijalankan lewat server Node (`npm run dev` / `npm start` / Docker):
+
+| Endpoint | Metode | Fungsi |
+| --- | --- | --- |
+| `/api/health` | GET | Status server |
+| `/api/database` | GET / POST | Baca / simpan seluruh database |
+| `/api/sync/version` | GET | Nomor versi data (untuk sinkronisasi) |
+| `/api/sync/events` | GET | Server-Sent Events (sinkron real-time) |
+| `/api/database/reset` | POST | Kembalikan ke data demo (`greenhouse_db.seed.json`) |
+| `/api/database/clear` | POST | Kosongkan semua data |
+| `/api/sync/sheets` | POST | Proxy kirim data ke webhook Google Sheets |
+| `/api/shortcuts/voice` | GET / POST | Parser perintah suara Bahasa Indonesia (iPhone Shortcuts/Siri) |
+
+Contoh mencatat transaksi lewat suara:
+
+```bash
+curl -X POST "http://localhost:3000/api/shortcuts/voice" \
+  -H "Content-Type: application/json" \
+  -d '{"text": "Pengeluaran 150 ribu beli nutrisi AB Mix siklus 1"}'
+```
+
+> Catatan: hosting statis seperti Vercel/Netlify tidak menjalankan Express, sehingga endpoint di atas
+> tidak tersedia dan data hanya tersimpan di browser (localStorage). Untuk sinkronisasi
+> HP ↔ PC, deploy lewat Render/Railway/Docker.
+
+---
+
+## 5. Struktur Singkat
 
 ```
 ├── server.ts              # Server Express (API + serve frontend)

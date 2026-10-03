@@ -181,7 +181,7 @@ interface GreenhouseContextType {
   resetToDemoData: () => Promise<void>;
   clearAllData: () => Promise<void>;
   importDatabase: (importedDb: GreenhouseDatabase) => Promise<boolean>;
-  refreshData: (silent?: boolean) => Promise<void>;
+  refreshData: (silent?: boolean) => Promise<boolean>;
   isSyncing: boolean;
   lastSyncTime: string;
   // Google Sheets Auto-Sync
@@ -462,8 +462,9 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       });
   }, []);
 
-  // Fetch latest data from backend & synchronize with local state
-  const refreshData = useCallback(async (silent = false) => {
+  // Fetch latest data from backend & synchronize with local state.
+  // Returns true when server data was fetched successfully, false when offline/unreachable.
+  const refreshData = useCallback(async (silent = false): Promise<boolean> => {
     if (!silent) {
       setIsSyncing(true);
     }
@@ -488,10 +489,13 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(data));
           } catch {}
           setLastSyncTime(new Date().toISOString());
+          return true;
         }
       }
+      return false;
     } catch {
       // Offline mode: keep local storage
+      return false;
     } finally {
       if (!silent) {
         setIsSyncing(false);
