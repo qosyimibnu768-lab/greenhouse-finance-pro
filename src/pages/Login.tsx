@@ -113,7 +113,7 @@ export const LoginPage: React.FC = () => {
                 Masuk ke Sistem
               </h1>
               <p className="text-xs sm:text-sm text-slate-500 font-medium">
-                Sistem Akuntansi, HPP & Manajemen Perkebunan Melon DFT
+                Sistem Akuntansi, HPP & Manajemen Perkebunan Melon Premium
               </p>
             </div>
           </div>

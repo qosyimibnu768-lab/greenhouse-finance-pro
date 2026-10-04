@@ -50,7 +50,7 @@ export const CropCyclesPage: React.FC = () => {
     const nextNum = db.cycles.length + 1;
     const nextId = `S${String(nextNum).padStart(3, '0')}`;
     setFormId(nextId);
-    setFormName(`Siklus ${nextNum} - Melon DFT`);
+    setFormName(`Siklus ${nextNum} - Melon Premium`);
     setFormVariety('Inthanon RZ');
     setFormTunnel('Greenhouse 1');
     setFormStartDate(new Date().toISOString().slice(0, 10));

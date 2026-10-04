@@ -58,7 +58,7 @@ export const exportFinancialReportToCSV = (
   options?: ExportOptions
 ) => {
   const dateStr = new Date().toISOString().split('T')[0];
-  const companyName = options?.companyName || 'Greenhouse Melon DFT';
+  const companyName = options?.companyName || 'Greenhouse Melon Premium';
   const tunnels = db.tunnels || [];
   const totalCapacity = tunnels.reduce((a, b) => a + (Number(b.capacityPlants) || 0), 0);
   const materials = getStructureMaterials(tunnels);
@@ -292,7 +292,7 @@ export const exportFinancialReportToPDF = (
 
   const tunnels = db.tunnels || [];
   const totalCapacity = tunnels.reduce((a, b) => a + (Number(b.capacityPlants) || 0), 0);
-  const companyName = options?.companyName || 'GREENHOUSE MELON DFT';
+  const companyName = options?.companyName || 'GREENHOUSE MELON PREMIUM';
 
   let currentY = 15;
 

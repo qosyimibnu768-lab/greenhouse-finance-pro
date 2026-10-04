@@ -197,7 +197,7 @@ export const HppPerTanamanAnalysis: React.FC = () => {
       id: 'ALL',
       name: 'Konsolidasi Seluruh Siklus Kebun',
       tunnel: 'Semua Greenhouse',
-      melonVariety: 'Campuran Varietas Melon DFT',
+      melonVariety: 'Campuran Varietas Melon Premium',
       status: 'Konsolidasi',
       plantCount: totalPlants,
       livePlants: totalLive,
@@ -384,7 +384,7 @@ export const HppPerTanamanAnalysis: React.FC = () => {
             <span>Analisis Harga Pokok Produksi (HPP)</span>
           </div>
           <h2 className="text-xl font-black text-slate-900 tracking-tight">
-            Analisis Komprehensif HPP Per Tanaman Melon DFT
+            Analisis Komprehensif HPP Per Tanaman Melon Premium
           </h2>
           <p className="text-xs text-slate-500 mt-0.5">
             Akumulasi biaya input (bibit, nutrisi, media, tenaga kerja) + operasional masa tanam + overhead dibagi populasi tanaman aktif

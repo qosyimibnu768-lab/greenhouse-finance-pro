@@ -1,6 +1,6 @@
 # Greenhouse Finance Pro
 
-Aplikasi profesional manajemen keuangan, investasi, siklus tanam, panen, stok bahan, presensi & payroll staf, serta analisis BEP/ROI khusus perkebunan greenhouse melon DFT modern.
+Aplikasi profesional manajemen keuangan, investasi, siklus tanam, panen, stok bahan, presensi & payroll staf, serta analisis BEP/ROI khusus perkebunan greenhouse melon Premium modern.
 
 ---
 

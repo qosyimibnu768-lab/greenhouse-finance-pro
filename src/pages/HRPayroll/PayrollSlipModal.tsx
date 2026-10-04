@@ -36,7 +36,7 @@ export const PayrollSlipModal: React.FC<PayrollSlipModalProps> = ({ isOpen, onCl
       doc.text('GREENHOUSE FINANCE PRO', 14, 15);
       doc.setFontSize(10);
       doc.setFont('helvetica', 'normal');
-      doc.text('SLIP GAJI KARYAWAN PERKEBUNAN MELON DFT', 14, 22);
+      doc.text('SLIP GAJI KARYAWAN PERKEBUNAN MELON PREMIUM', 14, 22);
 
       // Period & Slip ID
       doc.setFontSize(9);
@@ -91,7 +91,7 @@ export const PayrollSlipModal: React.FC<PayrollSlipModalProps> = ({ isOpen, onCl
         ['Gaji Pokok / Upah Harian', formatCurrency(record.baseSalary || record.dailyWages || 0), 'Potongan Keterlambatan', formatCurrency(record.deductionLate || 0)],
         ['Upah Lembur', formatCurrency(record.overtimePay || 0), 'Potongan Alpha / Absen', formatCurrency(record.deductionAlpha || 0)],
         ['Uang Makan & Transport', formatCurrency((record.allowanceMeal || 0) + (record.allowanceTransport || 0)), 'Potongan Kasbon / Pinjaman', formatCurrency(record.deductionKasbon || 0)],
-        ['Bonus Panen Melon DFT', formatCurrency(record.bonusHarvest || 0), 'Potongan BPJS / Lain-lain', formatCurrency((record.deductionBpjs || 0) + (record.deductionOther || 0))],
+        ['Bonus Panen Melon Premium', formatCurrency(record.bonusHarvest || 0), 'Potongan BPJS / Lain-lain', formatCurrency((record.deductionBpjs || 0) + (record.deductionOther || 0))],
         ['Bonus Kinerja / Lainnya', formatCurrency((record.bonusProduction || 0) + (record.otherBonus || 0)), '', ''],
       ];
 
@@ -141,7 +141,7 @@ export const PayrollSlipModal: React.FC<PayrollSlipModalProps> = ({ isOpen, onCl
             <div>
               <h2 className="text-base font-bold">Slip Gaji Resmi Karyawan</h2>
               <p className="text-xs text-emerald-200">
-                Greenhouse Melon DFT • {record.periodLabel}
+                Greenhouse Melon Premium • {record.periodLabel}
               </p>
             </div>
           </div>
@@ -236,7 +236,7 @@ export const PayrollSlipModal: React.FC<PayrollSlipModalProps> = ({ isOpen, onCl
                 )}
                 {record.bonusHarvest > 0 && (
                   <div className="flex justify-between text-emerald-700 font-medium">
-                    <span>Bonus Panen Melon DFT</span>
+                    <span>Bonus Panen Melon Premium</span>
                     <span className="font-bold">{formatCurrency(record.bonusHarvest)}</span>
                   </div>
                 )}

@@ -78,7 +78,7 @@ export const Navigation: React.FC<NavigationProps> = ({
     new Set(activeCycles.map((c) => c.melonVariety?.trim()).filter(Boolean) as string[])
   );
 
-  let brandSubtitle = 'Greenhouse Melon DFT';
+  let brandSubtitle = 'Greenhouse Melon Premium';
   if (tunnels.length > 0) {
     const sysName = uniqueSystems[0] || 'DFT Hydroponic';
     const varName = activeVarieties.length > 0 ? ` · ${activeVarieties[0]}` : '';

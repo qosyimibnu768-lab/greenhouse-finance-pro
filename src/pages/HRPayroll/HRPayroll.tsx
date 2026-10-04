@@ -143,7 +143,7 @@ export const HRPayrollPage: React.FC<HRPayrollProps> = ({
     date: new Date().toISOString().split('T')[0],
     startTime: '16:00',
     endTime: '19:00',
-    taskDescription: 'Pemangkasan tunas air & kontrol nutrisi melon DFT malam hari',
+    taskDescription: 'Pemangkasan tunas air & kontrol nutrisi melon Premium malam hari',
     greenhouse: 'Greenhouse 1',
   });
 
@@ -248,7 +248,7 @@ export const HRPayrollPage: React.FC<HRPayrollProps> = ({
         <div>
           <div className="flex items-center gap-2">
             <span className="px-3 py-1 bg-emerald-500/30 border border-emerald-400/40 rounded-full text-xs font-semibold text-emerald-200">
-              Modul Tenaga Kerja Kebun Melon DFT
+              Modul Tenaga Kerja Kebun Melon Premium
             </span>
             <span className="px-2.5 py-0.5 bg-teal-500/20 text-teal-200 text-xs rounded-full">
               HPP Auto-Integration
@@ -813,7 +813,7 @@ export const HRPayrollPage: React.FC<HRPayrollProps> = ({
         <div className="space-y-6">
           <div className="bg-white p-6 rounded-2xl border border-gray-100 shadow-xs">
             <h3 className="text-base font-bold text-gray-900 mb-1">
-              Konfigurasi Shift Kerja Melon DFT
+              Konfigurasi Shift Kerja Melon Premium
             </h3>
             <p className="text-xs text-gray-500 mb-6">
               Pengaturan jam kerja operasional kebun untuk perhitungan keterlambatan dan jam kerja.

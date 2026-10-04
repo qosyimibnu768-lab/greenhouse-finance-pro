@@ -79,7 +79,7 @@ export const ReportsPage: React.FC = () => {
 
   // Export Modal State
   const [isExportModalOpen, setIsExportModalOpen] = useState(false);
-  const [customTitle, setCustomTitle] = useState('Greenhouse Melon DFT Modern');
+  const [customTitle, setCustomTitle] = useState('Greenhouse Melon Premium Modern');
   const [selectedFormat, setSelectedFormat] = useState<'pdf' | 'csv'>('pdf');
   const [isExporting, setIsExporting] = useState(false);
 
@@ -1002,7 +1002,7 @@ export const ReportsPage: React.FC = () => {
               <div>
                 <h3 className="text-sm font-extrabold tracking-tight flex items-center gap-2">
                   <FileText className="w-4 h-4 text-emerald-400" />
-                  <span>LAPORAN LABA RUGI KOMPREHENSIF PERKEBUNAN MELON DFT</span>
+                  <span>LAPORAN LABA RUGI KOMPREHENSIF PERKEBUNAN MELON PREMIUM</span>
                 </h3>
                 <p className="text-xs text-slate-400 mt-0.5">
                   {activePnLSummary.periodTitle} • {activePnLSummary.periodSubtitle}
@@ -1121,7 +1121,7 @@ export const ReportsPage: React.FC = () => {
                   </div>
                   {activePnLSummary.bonusPanen > 0 && (
                     <div className="flex justify-between items-center text-emerald-800">
-                      <span className="font-sans font-semibold">4. Bonus Panen Melon DFT Berdasarkan Kuantitas Petik</span>
+                      <span className="font-sans font-semibold">4. Bonus Panen Melon Premium Berdasarkan Kuantitas Petik</span>
                       <span className="font-bold">{formatCurrency(activePnLSummary.bonusPanen)}</span>
                     </div>
                   )}
@@ -1490,7 +1490,7 @@ export const ReportsPage: React.FC = () => {
                     : 'Fase Pertumbuhan & Pengembalian Modal Investasi'}
                 </h3>
                 <p className="text-xs text-slate-300 leading-relaxed space-y-2">
-                  Hasil penjualan melon DFT telah berhasil menghasilkan omzet sebesar{' '}
+                  Hasil penjualan melon Premium telah berhasil menghasilkan omzet sebesar{' '}
                   <strong className="text-white">{formatCurrency(activePnLSummary.pendapatanPanen)}</strong>,
                   dengan laba operasional sebesar{' '}
                   <strong className="text-emerald-300">{formatCurrency(activePnLSummary.labaOperasional)}</strong>.

@@ -398,7 +398,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
           </div>
 
           <div className="p-3 rounded-xl bg-blue-50/60 border border-blue-200/80">
-            <span className="text-blue-700 text-[11px] font-medium block mb-0.5">Status HPP Melon DFT</span>
+            <span className="text-blue-700 text-[11px] font-medium block mb-0.5">Status HPP Melon Premium</span>
             <span className="text-xs sm:text-sm font-bold text-blue-900 block mt-1">
               {db.payrollSettings?.includeLaborInHpp ? '· Masuk ke HPP Panen' : '· HPP Non-Tenaga Kerja'}
             </span>

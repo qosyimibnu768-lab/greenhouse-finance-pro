@@ -741,7 +741,7 @@ export const HarvestCalendarPage: React.FC = () => {
                 Visualisasi Progres Siklus & Rotasi Tanam Antar Greenhouse
               </h3>
               <p className="text-xs text-slate-500">
-                Pola penanaman bertingkat (Staggered) memastikan kontinuitas panen melon DFT tanpa periode kosong.
+                Pola penanaman bertingkat (Staggered) memastikan kontinuitas panen melon Premium tanpa periode kosong.
               </p>
             </div>
             <span className="px-3 py-1 rounded-xl bg-emerald-50 text-emerald-800 text-xs font-bold border border-emerald-200">
