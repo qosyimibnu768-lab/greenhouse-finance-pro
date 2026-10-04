@@ -27,6 +27,18 @@
   ],
   "investments": [
     {
+      "date": "2026-10-04",
+      "category": "Listrik & Air",
+      "itemName": "QA Pompa Air Test",
+      "quantity": 2,
+      "unit": "unit",
+      "unitPrice": 250000,
+      "supplier": "QA Toko Teknik",
+      "tunnel": "Semua Greenhouse",
+      "id": "INV-1791082601678",
+      "totalAmount": 500000
+    },
+    {
       "id": "INV-001",
       "date": "2026-01-10",
       "category": "Pembangunan",
@@ -198,6 +210,17 @@
   ],
   "assets": [
     {
+      "name": "QA Semprotan Test",
+      "category": "Pembangunan",
+      "purchaseDate": "2026-10-04",
+      "purchasePrice": 150000,
+      "quantity": 2,
+      "condition": "Baik",
+      "economicLifeYears": 5,
+      "location": "Greenhouse 1 & 2",
+      "id": "AST-1791082744614"
+    },
+    {
       "id": "AST-001",
       "name": "Struktur Greenhouse Bambu Petung (T1: 8x48m, T2: 7x48m)",
       "category": "Greenhouse",
@@ -323,9 +346,36 @@
       "deadPlants": 12,
       "status": "Generatif",
       "notes": "Fase pembentukan jaring/netting buah dan seleksi 1 tanaman 1 buah terbaik."
+    },
+    {
+      "id": "S003",
+      "name": "QA Siklus Uji Coba",
+      "melonVariety": "Inthanon RZ",
+      "tunnel": "Greenhouse 1",
+      "startDate": "2026-10-04",
+      "plantingDate": "2026-10-04",
+      "harvestTargetDate": "2026-12-18",
+      "plantCount": 500,
+      "livePlants": 500,
+      "deadPlants": 0,
+      "status": "Tanam"
     }
   ],
   "harvests": [
+    {
+      "date": "2026-10-04",
+      "cycleId": "S001",
+      "tunnel": "Greenhouse 1",
+      "totalWeightKg": 125,
+      "gradeAKg": 100,
+      "gradeBKg": 20,
+      "gradeCKg": 5,
+      "pricePerKg": 35000,
+      "buyer": "QA Pasar Uji",
+      "paymentStatus": "Lunas",
+      "id": "HRV-1791082547898",
+      "totalRevenue": 4375000
+    },
     {
       "id": "HRV-001",
       "date": "2026-08-15",
@@ -358,6 +408,19 @@
     }
   ],
   "inventory": [
+    {
+      "name": "QA Nutrisi Test",
+      "category": "AB Mix",
+      "unit": "set",
+      "initialStock": 20,
+      "incomingStock": 5,
+      "outgoingStock": 0,
+      "minStock": 5,
+      "avgPrice": 100000,
+      "id": "ITM-1791082645328",
+      "currentStock": 25,
+      "lastUpdated": "2026-10-04"
+    },
     {
       "id": "INV-ITM-01",
       "name": "Pupuk AB Mix Khusus Melon (Pekatan 500L)",
@@ -465,6 +528,18 @@
   ],
   "stockMutations": [
     {
+      "date": "2026-10-04",
+      "itemId": "ITM-1791082645328",
+      "itemName": "QA Nutrisi Test",
+      "type": "Masuk",
+      "quantity": 5,
+      "unit": "set",
+      "unitPrice": 100000,
+      "totalCost": 500000,
+      "cycleId": "S002",
+      "id": "MUT-1791082688705"
+    },
+    {
       "id": "MUT-001",
       "date": "2026-05-20",
       "itemId": "INV-ITM-01",
@@ -504,6 +579,69 @@
     }
   ],
   "transactions": [
+    {
+      "id": "TRX-INV-INV-1791082601678",
+      "date": "2026-10-04",
+      "type": "pengeluaran",
+      "expenseGroup": "investasi",
+      "category": "Listrik & Air",
+      "subcategory": "QA Pompa Air Test",
+      "amount": 500000,
+      "paymentMethod": "Transfer Bank",
+      "tunnel": "Semua Greenhouse",
+      "note": "Investasi: QA Pompa Air Test (2 unit)",
+      "createdAt": "2026-10-04T02:56:41.678Z"
+    },
+    {
+      "id": "TRX-HRV-HRV-1791082547898",
+      "date": "2026-10-04",
+      "type": "pemasukan",
+      "category": "Penjualan melon",
+      "amount": 4375000,
+      "paymentMethod": "Transfer Bank",
+      "cycleId": "S001",
+      "tunnel": "Greenhouse 1",
+      "note": "Hasil penjualan panen 125 kg melon (QA Pasar Uji)",
+      "createdAt": "2026-10-04T02:55:47.898Z"
+    },
+    {
+      "date": "2026-10-04",
+      "type": "pengeluaran",
+      "expenseGroup": "investasi",
+      "category": "Instalasi",
+      "subcategory": "QA Instalasi Gully",
+      "amount": 1000000,
+      "paymentMethod": "Transfer Bank",
+      "cycleId": "S002",
+      "tunnel": "Greenhouse 2",
+      "id": "TRX-1791081786700-456",
+      "createdAt": "2026-10-04T02:43:06.700Z"
+    },
+    {
+      "date": "2026-10-04",
+      "type": "pengeluaran",
+      "expenseGroup": "operasional",
+      "category": "AB Mix",
+      "subcategory": "QA Beli Pupuk",
+      "amount": 30000,
+      "paymentMethod": "Transfer Bank",
+      "cycleId": "S002",
+      "tunnel": "Greenhouse 2",
+      "id": "TRX-1791081761824-682",
+      "createdAt": "2026-10-04T02:42:41.824Z"
+    },
+    {
+      "date": "2026-10-04",
+      "type": "pemasukan",
+      "category": "Penjualan melon",
+      "subcategory": "QA Penjualan Melon",
+      "amount": 5000000,
+      "paymentMethod": "Transfer Bank",
+      "cycleId": "S002",
+      "tunnel": "Greenhouse 2",
+      "id": "TRX-1791081760808-252",
+      "createdAt": "2026-10-04T02:42:40.808Z"
+    },
     {
       "id": "TRX-001",
       "date": "2026-01-05",
@@ -866,6 +1004,18 @@
     }
   ],
   "debts": [
+    {
+      "type": "hutang",
+      "counterparty": "QA Supplier Test",
+      "date": "2026-10-04",
+      "dueDate": "2026-11-03",
+      "amount": 750000,
+      "paidAmount": 0,
+      "description": "QA uji hutang tempo 30 hari",
+      "id": "DEBT-1791082780146",
+      "remainingAmount": 750000,
+      "status": "Belum lunas"
+    },
     {
       "id": "DEBT-001",
       "type": "hutang",

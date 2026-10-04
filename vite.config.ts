@@ -16,7 +16,12 @@ export default defineConfig(() => {
       // Do not modify—file watching is disabled to prevent flickering during agent edits.
       hmr: process.env.DISABLE_HMR !== 'true',
       // Disable file watching when DISABLE_HMR is true to save CPU during agent edits.
-      watch: process.env.DISABLE_HMR === 'true' ? null : {},
+      // Folder `data/` DIKECUALIKAN: server menulis database ke sana setiap penyimpanan —
+      // tanpa pengecualian ini setiap simpan memicu reload halaman penuh di mode lokal.
+      watch:
+        process.env.DISABLE_HMR === 'true'
+          ? null
+          : { ignored: ['**/data/**', '**/dist/**', '**/.git/**'] },
     },
   };
 });

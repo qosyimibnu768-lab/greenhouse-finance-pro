@@ -29,8 +29,9 @@ export function migrateLegacyGreenhouseNaming(database: any): { data: any; chang
 
   const renameValue = (value: any): any => {
     if (typeof value !== 'string') return value;
-    const renamed = renames[value];
-    if (renamed && renamed !== value) {
+    // Peta dari nama unit yang ada, atau fallback pola "Tunnel N" -> "Greenhouse N"
+    const renamed = renames[value] || value.replace(/^Tunnel\s+/i, 'Greenhouse ');
+    if (renamed !== value) {
       changed = true;
       return renamed;
     }
