@@ -49,6 +49,36 @@ const CATEGORIES_PENGELUARAN_INVESTASI = [
   'Peralatan',
 ];
 
+/**
+ * Kompres foto nota (maks 1200 px, JPEG kualitas 0,72) agar database tetap kecil
+ * dan aman di bawah batas simpan serverless (±4,5 MB).
+ */
+const compressReceiptImage = (dataUrl: string, maxDim = 1200, quality = 0.72): Promise<string> =>
+  new Promise((resolve, reject) => {
+    const img = new Image();
+    img.onload = () => {
+      try {
+        const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+        const width = Math.max(1, Math.round(img.width * scale));
+        const height = Math.max(1, Math.round(img.height * scale));
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        if (!ctx) {
+          reject(new Error('Canvas tidak tersedia'));
+          return;
+        }
+        ctx.drawImage(img, 0, 0, width, height);
+        resolve(canvas.toDataURL('image/jpeg', quality));
+      } catch (err) {
+        reject(err as Error);
+      }
+    };
+    img.onerror = () => reject(new Error('Gagal membaca gambar'));
+    img.src = dataUrl;
+  });
+
 export const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, initialData }) => {
   const { db, addTransaction, updateTransaction } = useGreenhouse();
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
@@ -174,13 +204,20 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onCl
   const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
+      setError(null);
       if (file.size > 5 * 1024 * 1024) {
         setError('Ukuran file foto bukti maksimal 5MB');
         return;
       }
       const reader = new FileReader();
-      reader.onloadend = () => {
-        setReceiptUrl(reader.result as string);
+      reader.onloadend = async () => {
+        const original = reader.result as string;
+        try {
+          // Kompres otomatis agar database tetap kecil & sinkronisasi aman
+          setReceiptUrl(await compressReceiptImage(original));
+        } catch {
+          setReceiptUrl(original);
+        }
       };
       reader.readAsDataURL(file);
     }
