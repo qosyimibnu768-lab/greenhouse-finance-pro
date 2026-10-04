@@ -54,7 +54,9 @@ let cachedReadAccess: 'public' | 'private' | null = null;
 let cachedWriteAccess: 'public' | 'private' | null = null;
 
 function accessOrder(cached: 'public' | 'private' | null): Array<'public' | 'private'> {
-  return cached === 'private' ? ['private', 'public'] : ['public', 'private'];
+  // Default: coba 'private' lebih dulu — store private membalas lewat jalur
+  // konsisten (tanpa cache CDN), sehingga data selalu terbaru.
+  return cached === 'public' ? ['public', 'private'] : ['private', 'public'];
 }
 
 async function blobGetPayload(): Promise<any | null> {

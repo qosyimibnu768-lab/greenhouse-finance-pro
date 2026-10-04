@@ -55,6 +55,29 @@ const clearPendingUpload = () => {
     // abaikan
   }
 };
+
+// Kunci-kunci data usaha yang dipakai untuk menilai apakah sebuah database kosong.
+const EMPTY_CHECK_KEYS = [
+  'transactions',
+  'harvests',
+  'cycles',
+  'investments',
+  'inventory',
+  'tunnels',
+  'assets',
+  'debts',
+  'employees',
+  'payrolls',
+  'stockMutations',
+];
+
+const isDatabaseEmpty = (database: any): boolean => {
+  if (!database || typeof database !== 'object') return true;
+  return EMPTY_CHECK_KEYS.every((key) => {
+    const value = database[key];
+    return !Array.isArray(value) || value.length === 0;
+  });
+};
 const AUTH_STORAGE_KEY = 'greenhouse_auth_user_v1';
 const USERS_STORAGE_KEY = 'greenhouse_registered_users_v1';
 
@@ -526,6 +549,29 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       if (res.ok) {
         const data: GreenhouseDatabase = await res.json();
         if (data && Array.isArray(data.transactions)) {
+          // Penyelamat data: server kosong total tetapi perangkat ini masih memiliki
+          // data → unggah data perangkat, jangan biarkan tarikan kosong menghapusnya.
+          if (isDatabaseEmpty(data) && !isDatabaseEmpty(dbRef.current)) {
+            try {
+              const pushRes = await fetch('/api/database', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(dbRef.current),
+              });
+              if (pushRes.ok) {
+                clearPendingUpload();
+                const result = await pushRes.json().catch(() => null);
+                if (result?.version) {
+                  lastSeenVersionRef.current = result.version;
+                }
+                setLastSyncTime(new Date().toISOString());
+                return true;
+              }
+            } catch {
+              // Gagal unggah — pertahankan data lokal
+            }
+            return false;
+          }
           if (!data.tunnels || !Array.isArray(data.tunnels)) {
             data.tunnels = INITIAL_TUNNELS;
           }
