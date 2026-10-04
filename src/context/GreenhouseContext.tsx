@@ -35,6 +35,26 @@ import {
 } from '../services/sheetsSyncService';
 
 const LOCAL_STORAGE_KEY = 'greenhouse_finance_db_v1';
+
+// Penanda bila ada perubahan lokal yang belum berhasil diunggah ke server.
+// Selama penanda ini ada, data server TIDAK ditarik agar perubahan lokal tidak tertimpa.
+const PENDING_UPLOAD_KEY = 'greenhouse_pending_upload_v1';
+
+const markPendingUpload = () => {
+  try {
+    localStorage.setItem(PENDING_UPLOAD_KEY, '1');
+  } catch {
+    // abaikan
+  }
+};
+
+const clearPendingUpload = () => {
+  try {
+    localStorage.removeItem(PENDING_UPLOAD_KEY);
+  } catch {
+    // abaikan
+  }
+};
 const AUTH_STORAGE_KEY = 'greenhouse_auth_user_v1';
 const USERS_STORAGE_KEY = 'greenhouse_registered_users_v1';
 
@@ -452,6 +472,7 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     })
       .then(async (res) => {
         if (res.ok) {
+          clearPendingUpload();
           const result = await res.json();
           if (result?.data && Array.isArray(result.data.transactions)) {
             setDb(result.data);
@@ -460,10 +481,13 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             } catch {}
           }
           setLastSyncTime(new Date().toISOString());
+        } else {
+          markPendingUpload();
         }
       })
       .catch(() => {
-        // offline fallback is silent
+        // Offline: tandai agar perubahan lokal diunggah ulang sebelum menarik data server
+        markPendingUpload();
       });
   }, []);
 
@@ -474,6 +498,30 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       setIsSyncing(true);
     }
     try {
+      // Jika ada perubahan lokal yang belum terunggah, unggah dulu —
+      // jangan tarik data server agar perubahan lokal tidak tertimpa.
+      if (localStorage.getItem(PENDING_UPLOAD_KEY) === '1') {
+        try {
+          const pushRes = await fetch('/api/database', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(dbRef.current),
+          });
+          if (pushRes.ok) {
+            clearPendingUpload();
+            const result = await pushRes.json().catch(() => null);
+            if (result?.version) {
+              lastSeenVersionRef.current = result.version;
+            }
+            setLastSyncTime(new Date().toISOString());
+            return true;
+          }
+        } catch {
+          // Masih offline — pertahankan data lokal
+        }
+        return false;
+      }
+
       const res = await fetch('/api/database');
       if (res.ok) {
         const data: GreenhouseDatabase = await res.json();
@@ -1862,6 +1910,7 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     try {
       const res = await fetch('/api/database/reset', { method: 'POST' });
       if (res.ok) {
+        clearPendingUpload();
         const result = await res.json();
         if (result?.data) {
           setDb(result.data);
@@ -1869,9 +1918,12 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(result.data));
           } catch {}
         }
+      } else {
+        markPendingUpload();
       }
     } catch (err) {
       console.error('Failed resetting on server', err);
+      markPendingUpload();
     }
     setLastSyncTime(new Date().toISOString());
     addToast({ type: 'success', title: 'Data Demo Dipulihkan', message: 'Seluruh sampel data telah dimuat kembali.' });
@@ -1907,6 +1959,7 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     try {
       const res = await fetch('/api/database/clear', { method: 'POST' });
       if (res.ok) {
+        clearPendingUpload();
         const result = await res.json();
         if (result?.data) {
           setDb(result.data);
@@ -1914,9 +1967,12 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(result.data));
           } catch {}
         }
+      } else {
+        markPendingUpload();
       }
     } catch (err) {
       console.error('Failed clearing on server', err);
+      markPendingUpload();
     }
     setLastSyncTime(new Date().toISOString());
     addToast({ type: 'warning', title: 'Data Dikosongkan', message: 'Seluruh data demo transaksi, siklus, dan aset telah dihapus. Siap untuk input operasional murni.' });

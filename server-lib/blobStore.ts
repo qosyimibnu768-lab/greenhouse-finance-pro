@@ -44,30 +44,39 @@ function localFilePath(): string {
 /**
  * Access memori (per instance function) untuk menghindari percobaan berulang.
  * Blob store bisa dibuat sebagai Public atau Private — kode mendeteksi otomatis.
+ *
+ * PENTING: cache baca dan tulis dipisah. Pada store Private, operasi baca
+ * masih bisa berhasil dengan flag 'public', tetapi operasi tulis DITOLAK.
+ * Karena itu cache tulis tidak boleh "teracuni" oleh keberhasilan baca, dan
+ * fallback ke mode akses lain harus SELALU dicoba (bukan hanya saat cache kosong).
  */
-let cachedBlobAccess: 'public' | 'private' | null = null;
+let cachedReadAccess: 'public' | 'private' | null = null;
+let cachedWriteAccess: 'public' | 'private' | null = null;
+
+function accessOrder(cached: 'public' | 'private' | null): Array<'public' | 'private'> {
+  return cached === 'private' ? ['private', 'public'] : ['public', 'private'];
+}
 
 async function blobGetPayload(): Promise<any | null> {
-  const modes: Array<'public' | 'private'> = cachedBlobAccess ? [cachedBlobAccess] : ['public', 'private'];
-  for (const access of modes) {
+  for (const access of accessOrder(cachedReadAccess)) {
     try {
       const result = await get(BLOB_PATHNAME, { access, useCache: false });
       if (result && result.statusCode === 200 && result.stream) {
-        cachedBlobAccess = access;
+        cachedReadAccess = access;
         const text = await new Response(result.stream as ReadableStream).text();
         return JSON.parse(text);
       }
     } catch {
-      // Mode akses tidak cocok — coba mode berikutnya
+      // Mode akses ini tidak berhasil — coba mode berikutnya
+      if (cachedReadAccess === access) cachedReadAccess = null;
     }
   }
   return null;
 }
 
 async function blobPutPayload(text: string): Promise<void> {
-  const modes: Array<'public' | 'private'> = cachedBlobAccess ? [cachedBlobAccess] : ['public', 'private'];
   let lastError: any = null;
-  for (const access of modes) {
+  for (const access of accessOrder(cachedWriteAccess)) {
     try {
       await put(BLOB_PATHNAME, text, {
         access,
@@ -76,10 +85,12 @@ async function blobPutPayload(text: string): Promise<void> {
         contentType: 'application/json',
         cacheControlMaxAge: 60,
       });
-      cachedBlobAccess = access;
+      cachedWriteAccess = access;
       return;
     } catch (error) {
       lastError = error;
+      // Mode akses ini tidak cocok dengan store — jangan dipakai lagi sebagai preferensi
+      if (cachedWriteAccess === access) cachedWriteAccess = null;
     }
   }
   throw lastError || new Error('Gagal menyimpan ke Vercel Blob');
