@@ -24,6 +24,7 @@ import {
   AttendanceStatus,
 } from '../types';
 import { INITIAL_DATABASE, INITIAL_TUNNELS } from '../data/initialData';
+import { migrateLegacyGreenhouseNaming } from '../utils/greenhouseSpec';
 import { INITIAL_USERS } from '../data/initialUsers';
 import {
   getStoredSheetsWebhook,
@@ -242,7 +243,7 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     try {
       const saved = localStorage.getItem(LOCAL_STORAGE_KEY);
       if (saved) {
-        const parsed = JSON.parse(saved);
+        const parsed = migrateLegacyGreenhouseNaming(JSON.parse(saved)).data;
         if (!parsed.tunnels || !Array.isArray(parsed.tunnels)) {
           parsed.tunnels = INITIAL_TUNNELS;
         }
@@ -547,8 +548,16 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
       const res = await fetch('/api/database');
       if (res.ok) {
-        const data: GreenhouseDatabase = await res.json();
+        const rawData: GreenhouseDatabase = await res.json();
+        const migration = migrateLegacyGreenhouseNaming(rawData);
+        const data: GreenhouseDatabase = migration.data;
         if (data && Array.isArray(data.transactions)) {
+          if (migration.changed) {
+            // Data di server masih memakai penamaan lama ("Tunnel") —
+            // simpan versi baru (termasuk unggah ke server) lalu selesai.
+            saveState(data);
+            return true;
+          }
           // Penyelamat data: server kosong total tetapi perangkat ini masih memiliki
           // data → unggah data perangkat, jangan biarkan tarikan kosong menghapusnya.
           if (isDatabaseEmpty(data) && !isDatabaseEmpty(dbRef.current)) {
@@ -795,7 +804,7 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     saveState(newDb);
     addToast({
       type: 'success',
-      title: 'Tunnel Berhasil Ditambahkan',
+      title: 'Greenhouse Berhasil Ditambahkan',
       message: `${newTunnel.name} (${newTunnel.widthM}x${newTunnel.lengthM} m · ${newTunnel.capacityPlants} tanaman)`,
     });
     return true;
@@ -816,7 +825,7 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       return t;
     });
     saveState({ ...db, tunnels: updated });
-    addToast({ type: 'success', title: 'Data Tunnel Diperbarui' });
+    addToast({ type: 'success', title: 'Data Greenhouse Diperbarui' });
     return true;
   };
 
@@ -827,7 +836,7 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     saveState({ ...db, tunnels: updated });
     addToast({
       type: 'info',
-      title: 'Tunnel Dihapus',
+      title: 'Greenhouse Dihapus',
       message: `${target.name} telah berhasil dihapus dari sistem.`,
     });
     return true;
@@ -1856,7 +1865,7 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       subcategory: `Gaji ${payroll.employeeName}`,
       amount: payroll.netSalary,
       paymentMethod: paymentData.paymentMethod === 'Cash' ? 'Tunai / Cash' : 'Transfer Bank',
-      tunnel: payroll.greenhouse || 'Kedua Tunnel',
+      tunnel: payroll.greenhouse || 'Semua Greenhouse',
       note: `Payroll ${payroll.periodLabel} - ${payroll.employeeName} (${payroll.position}) [Ref: ${ref}]`,
       createdAt: new Date().toISOString(),
     };
@@ -2029,7 +2038,7 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       addToast({ type: 'error', title: 'Format File Tidak Sesuai' });
       return false;
     }
-    saveState(imported);
+    saveState(migrateLegacyGreenhouseNaming(imported).data);
     addToast({ type: 'success', title: 'Database Berhasil Diimpor' });
     return true;
   };

@@ -14,7 +14,7 @@ function downloadFile(content: string, fileName: string, mimeType: string) {
 }
 
 export function exportTransactionsCSV(transactions: Transaction[]) {
-  const headers = ['ID', 'Tanggal', 'Jenis', 'Kelompok', 'Kategori', 'Subkategori', 'Nominal (Rp)', 'Metode Pembayaran', 'Siklus', 'Tunnel', 'Keterangan'];
+  const headers = ['ID', 'Tanggal', 'Jenis', 'Kelompok', 'Kategori', 'Subkategori', 'Nominal (Rp)', 'Metode Pembayaran', 'Siklus', 'Greenhouse', 'Keterangan'];
   const rows = transactions.map((t) => [
     `"${t.id}"`,
     `"${t.date}"`,
@@ -33,7 +33,7 @@ export function exportTransactionsCSV(transactions: Transaction[]) {
 }
 
 export function exportHarvestCSV(harvests: HarvestRecord[]) {
-  const headers = ['ID', 'Tanggal', 'Siklus', 'Tunnel', 'Total Kg', 'Grade A (Kg)', 'Grade B (Kg)', 'Grade C (Kg)', 'Harga/Kg (Rp)', 'Total Omzet (Rp)', 'Pembeli', 'Status Pembayaran', 'Catatan'];
+  const headers = ['ID', 'Tanggal', 'Siklus', 'Greenhouse', 'Total Kg', 'Grade A (Kg)', 'Grade B (Kg)', 'Grade C (Kg)', 'Harga/Kg (Rp)', 'Total Omzet (Rp)', 'Pembeli', 'Status Pembayaran', 'Catatan'];
   const rows = harvests.map((h) => [
     `"${h.id}"`,
     `"${h.date}"`,

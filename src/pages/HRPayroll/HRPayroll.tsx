@@ -144,7 +144,7 @@ export const HRPayrollPage: React.FC<HRPayrollProps> = ({
     startTime: '16:00',
     endTime: '19:00',
     taskDescription: 'Pemangkasan tunas air & kontrol nutrisi melon DFT malam hari',
-    greenhouse: 'Tunnel 1',
+    greenhouse: 'Greenhouse 1',
   });
 
   // Filtered staff
@@ -873,7 +873,7 @@ export const HRPayrollPage: React.FC<HRPayrollProps> = ({
                   startTime: '16:00',
                   endTime: '19:00',
                   taskDescription: 'Pemangkasan tunas air & kontrol nutrisi DFT',
-                  greenhouse: 'Tunnel 1',
+                  greenhouse: 'Greenhouse 1',
                 });
                 setIsOvertimeModalOpen(true);
               }}

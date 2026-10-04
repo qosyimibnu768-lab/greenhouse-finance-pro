@@ -13,7 +13,7 @@ export const LiveFaceCheckInModal: React.FC<LiveFaceCheckInModalProps> = ({ isOp
   const videoRef = useRef<HTMLVideoElement>(null);
 
   const [mode, setMode] = useState<'in' | 'out'>('in');
-  const [selectedGreenhouse, setSelectedGreenhouse] = useState('Tunnel 1');
+  const [selectedGreenhouse, setSelectedGreenhouse] = useState('Greenhouse 1');
   const [isScanning, setIsScanning] = useState(false);
   const [matchedStaff, setMatchedStaff] = useState<any>(null);
   const [confidenceScore, setConfidenceScore] = useState<number | null>(null);

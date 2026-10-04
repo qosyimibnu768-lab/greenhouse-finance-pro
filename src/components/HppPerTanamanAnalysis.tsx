@@ -70,7 +70,7 @@ export const HppPerTanamanAnalysis: React.FC = () => {
           (t.category.toLowerCase().includes('gaji') ||
             t.category.toLowerCase().includes('payroll') ||
             t.category.toLowerCase().includes('tenaga')) &&
-          (t.tunnel === c.tunnel || t.tunnel === 'Kedua Tunnel' || t.tunnel === 'Umum / Fasilitas')
+          (t.tunnel === c.tunnel || t.tunnel === 'Semua Greenhouse' || t.tunnel === 'Umum / Fasilitas')
         ) {
           const trxDate = new Date(t.date).getTime();
           const startDate = new Date(c.startDate).getTime();
@@ -701,7 +701,7 @@ export const HppPerTanamanAnalysis: React.FC = () => {
               <div className="flex justify-between text-[10px] text-slate-400 mt-0.5">
                 <span>500 Pohon</span>
                 <span>1.000 Pohon (Standar)</span>
-                <span>2.000 Pohon (2 Tunnel)</span>
+                <span>2.000 Pohon (2 Greenhouse)</span>
                 <span>2.500 Pohon</span>
               </div>
             </div>

@@ -17,7 +17,7 @@ interface HeaderProps {
 const TAB_TITLES: Record<NavItemKey, { title: string; subtitle: string }> = {
   dashboard: { title: 'Dashboard Keuangan', subtitle: 'Ringkasan arus kas, omzet, laba, dan kesehatan bisnis greenhouse' },
   transaksi: { title: 'Daftar Transaksi', subtitle: 'Pencatatan pemasukan, biaya operasional, dan modal investasi' },
-  'kalender-panen': { title: 'Kalender Panen & Jadwal Tanam', subtitle: 'Peta visual fase HST, rotasi tanam antar tunnel, dan proyeksi omzet panen' },
+  'kalender-panen': { title: 'Kalender Panen & Jadwal Tanam', subtitle: 'Peta visual fase HST, rotasi tanam antar greenhouse, dan proyeksi omzet panen' },
   siklus: { title: 'Siklus Tanam Melon', subtitle: 'Manajemen siklus, populasi tanaman DFT, target panen, dan HPP' },
   panen: { title: 'Panen & Penjualan', subtitle: 'Data timbangan panen per grade, harga jual, dan omzet per siklus' },
   tunnels: { title: 'Manajemen Greenhouse', subtitle: 'Kelola ukuran, kapasitas tanaman, sistem hidroponik, dan unit greenhouse' },

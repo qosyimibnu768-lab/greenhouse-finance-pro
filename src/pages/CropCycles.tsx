@@ -33,7 +33,7 @@ export const CropCyclesPage: React.FC = () => {
   const [formId, setFormId] = useState('');
   const [formName, setFormName] = useState('');
   const [formVariety, setFormVariety] = useState('');
-  const [formTunnel, setFormTunnel] = useState<TunnelType>('Tunnel 1');
+  const [formTunnel, setFormTunnel] = useState<TunnelType>('Greenhouse 1');
   const [formStartDate, setFormStartDate] = useState('');
   const [formPlantingDate, setFormPlantingDate] = useState('');
   const [formHarvestTargetDate, setFormHarvestTargetDate] = useState('');
@@ -52,7 +52,7 @@ export const CropCyclesPage: React.FC = () => {
     setFormId(nextId);
     setFormName(`Siklus ${nextNum} - Melon DFT`);
     setFormVariety('Inthanon RZ');
-    setFormTunnel('Tunnel 1');
+    setFormTunnel('Greenhouse 1');
     setFormStartDate(new Date().toISOString().slice(0, 10));
     setFormPlantingDate(new Date().toISOString().slice(0, 10));
     const target = new Date();
@@ -151,7 +151,7 @@ export const CropCyclesPage: React.FC = () => {
       if (
         includeLabor &&
         (t.category.toLowerCase().includes('gaji') || t.category.toLowerCase().includes('payroll')) &&
-        (t.tunnel === selectedCycle.tunnel || t.tunnel === 'Kedua Tunnel')
+        (t.tunnel === selectedCycle.tunnel || t.tunnel === 'Semua Greenhouse')
       ) {
         const trxDate = new Date(t.date).getTime();
         const startDate = new Date(selectedCycle.startDate).getTime();
@@ -213,7 +213,7 @@ export const CropCyclesPage: React.FC = () => {
       {/* Top Header & New Cycle Button */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-4 rounded-2xl bg-white border border-slate-200">
         <div>
-          <h2 className="text-base font-bold text-slate-900">Manajemen Siklus Tanam Melon DFT</h2>
+          <h2 className="text-base font-bold text-slate-900">Manajemen Siklus Tanam Melon Premium</h2>
           <p className="text-xs text-slate-500">
             Penghitungan akurat biaya benih, nutrisi AB Mix, biaya per tanaman, dan HPP per kg
           </p>
@@ -503,7 +503,7 @@ export const CropCyclesPage: React.FC = () => {
                   />
                 </div>
                 <div>
-                  <label className="font-semibold text-slate-700 block mb-1">Tunnel Greenhouse</label>
+                  <label className="font-semibold text-slate-700 block mb-1">Lokasi Greenhouse</label>
                   <select
                     value={formTunnel}
                     onChange={(e) => setFormTunnel(e.target.value as TunnelType)}
@@ -514,7 +514,7 @@ export const CropCyclesPage: React.FC = () => {
                         {t.name} ({t.widthM} x {t.lengthM} m)
                       </option>
                     ))}
-                    <option value="Kedua Tunnel">Semua / Gabungan Tunnel</option>
+                    <option value="Semua Greenhouse">Semua / Gabungan Greenhouse</option>
                   </select>
                 </div>
               </div>

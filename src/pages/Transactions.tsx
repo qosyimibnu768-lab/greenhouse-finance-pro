@@ -227,19 +227,19 @@ export const TransactionsPage: React.FC<TransactionsPageProps> = ({
             </select>
           </div>
           <div>
-            <label className="text-[10px] font-semibold text-slate-500 block mb-1">Tunnel</label>
+            <label className="text-[10px] font-semibold text-slate-500 block mb-1">Greenhouse</label>
             <select
               value={tunnelFilter}
               onChange={(e) => setTunnelFilter(e.target.value)}
               className="w-full px-2.5 py-1.5 rounded-lg border border-slate-200 text-slate-800"
             >
-              <option value="all">Semua Lokasi / Tunnel</option>
+              <option value="all">Semua Lokasi / Greenhouse</option>
               {(db.tunnels || []).map((t) => (
                 <option key={t.id} value={t.name}>
                   {t.name} ({t.widthM} x {t.lengthM} m)
                 </option>
               ))}
-              <option value="Kedua Tunnel">Semua / Gabungan Tunnel</option>
+              <option value="Semua Greenhouse">Semua / Gabungan Greenhouse</option>
               <option value="Umum / Fasilitas">Umum / Fasilitas</option>
             </select>
           </div>
@@ -272,7 +272,7 @@ export const TransactionsPage: React.FC<TransactionsPageProps> = ({
               <tr>
                 <th className="py-3.5 px-4">Tanggal</th>
                 <th className="py-3.5 px-4">Kategori & Keterangan</th>
-                <th className="py-3.5 px-4">Siklus & Tunnel</th>
+                <th className="py-3.5 px-4">Siklus & Greenhouse</th>
                 <th className="py-3.5 px-4">Metode</th>
                 <th className="py-3.5 px-4 text-right">Nominal</th>
                 <th className="py-3.5 px-4 text-center">Bukti</th>

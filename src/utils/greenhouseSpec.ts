@@ -1,6 +1,74 @@
 import { Tunnel } from '../types';
 
 /**
+ * Nilai agregat lama -> baru. 'Kedua Tunnel' & 'Semua / Gabungan Greenhouse'
+ * diganti menjadi satu nilai baku: 'Semua Greenhouse'.
+ */
+export const AGGREGATE_GREENHOUSE = 'Semua Greenhouse';
+
+/**
+ * Migrasi nama lama "Tunnel N" -> "Greenhouse N" pada unit & seluruh referensinya
+ * (transaksi, panen, siklus, investasi, data HR). Idempoten & aman dijalankan berulang.
+ */
+export function migrateLegacyGreenhouseNaming(database: any): { data: any; changed: boolean } {
+  if (!database || typeof database !== 'object') return { data: database, changed: false };
+
+  let changed = false;
+
+  const renames: Record<string, string> = {
+    'Kedua Tunnel': AGGREGATE_GREENHOUSE,
+    'Semua / Gabungan Greenhouse': AGGREGATE_GREENHOUSE,
+  };
+
+  const tunnels: any[] = Array.isArray(database.tunnels) ? database.tunnels : [];
+  tunnels.forEach((t) => {
+    if (t && typeof t.name === 'string' && /^Tunnel\s+/i.test(t.name)) {
+      renames[t.name] = t.name.replace(/^Tunnel\s+/i, 'Greenhouse ');
+    }
+  });
+
+  const renameValue = (value: any): any => {
+    if (typeof value !== 'string') return value;
+    const renamed = renames[value];
+    if (renamed && renamed !== value) {
+      changed = true;
+      return renamed;
+    }
+    return value;
+  };
+
+  tunnels.forEach((t) => {
+    if (t && typeof t.name === 'string') {
+      t.name = renameValue(t.name);
+    }
+  });
+
+  ['transactions', 'harvests', 'cycles', 'investments'].forEach((key) => {
+    const list = database[key];
+    if (Array.isArray(list)) {
+      list.forEach((item) => {
+        if (item && typeof item.tunnel === 'string') {
+          item.tunnel = renameValue(item.tunnel);
+        }
+      });
+    }
+  });
+
+  ['employees', 'workShifts', 'attendances', 'leaveRequests', 'overtimeRequests', 'payrolls'].forEach((key) => {
+    const list = database[key];
+    if (Array.isArray(list)) {
+      list.forEach((item) => {
+        if (item && typeof item.greenhouse === 'string') {
+          item.greenhouse = renameValue(item.greenhouse);
+        }
+      });
+    }
+  });
+
+  return { data: database, changed };
+}
+
+/**
  * Utilitas spesifikasi greenhouse — semua teks spesifikasi di aplikasi
  * diambil dari data pada menu Manajemen GH (daftar unit), sehingga:
  *  - Data diisi  → spesifikasi muncul otomatis sesuai isian.

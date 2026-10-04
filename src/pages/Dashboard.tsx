@@ -558,7 +558,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
 
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3.5">
           {(db.tunnels || []).map((t) => {
-            const activeCycle = db.cycles.find((c) => c.status !== 'Selesai' && (c.tunnel === t.name || c.tunnel === 'Kedua Tunnel'));
+            const activeCycle = db.cycles.find((c) => c.status !== 'Selesai' && (c.tunnel === t.name || c.tunnel === 'Semua Greenhouse'));
             return (
               <div
                 key={t.id}

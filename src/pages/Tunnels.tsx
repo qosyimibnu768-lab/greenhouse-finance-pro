@@ -259,14 +259,14 @@ export const TunnelsPage: React.FC<TunnelsPageProps> = ({ onNavigateToCycles }) 
           {filteredTunnels.map((tunnel) => {
             const areaM2 = (Number(tunnel.lengthM) || 0) * (Number(tunnel.widthM) || 0);
             const activeCycle = db.cycles.find(
-              (c) => c.status !== 'Selesai' && (c.tunnel === tunnel.name || c.tunnel === 'Kedua Tunnel')
+              (c) => c.status !== 'Selesai' && (c.tunnel === tunnel.name || c.tunnel === 'Semua Greenhouse')
             );
             const tunnelInvestments = db.investments.filter(
-              (inv) => inv.tunnel === tunnel.name || inv.tunnel === 'Kedua Tunnel'
+              (inv) => inv.tunnel === tunnel.name || inv.tunnel === 'Semua Greenhouse'
             );
             const totalInvAmount = tunnelInvestments.reduce((acc, inv) => acc + (inv.totalAmount || 0), 0);
             const tunnelHarvests = db.harvests.filter(
-              (h) => h.tunnel === tunnel.name || h.tunnel === 'Kedua Tunnel'
+              (h) => h.tunnel === tunnel.name || h.tunnel === 'Semua Greenhouse'
             );
             const totalHarvestKg = tunnelHarvests.reduce((acc, h) => acc + (h.totalWeightKg || 0), 0);
             const totalRevenue = tunnelHarvests.reduce((acc, h) => acc + (h.totalRevenue || 0), 0);
@@ -620,7 +620,7 @@ export const TunnelsPage: React.FC<TunnelsPageProps> = ({ onNavigateToCycles }) 
                 onClick={handleConfirmDelete}
                 className="px-5 py-2.5 rounded-xl bg-rose-600 hover:bg-rose-700 text-white text-xs font-bold shadow-md shadow-rose-900/20 transition active:scale-95 cursor-pointer"
               >
-                Ya, Hapus Tunnel
+                Ya, Hapus Greenhouse
               </button>
             </div>
           </div>

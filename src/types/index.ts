@@ -98,7 +98,7 @@ export interface Investment {
 export interface Asset {
   id: string;
   name: string;
-  category: 'Greenhouse' | 'Instalasi DFT' | 'Pompa & Kelistrikan' | 'Alat Ukur & Sensor' | 'Peralatan Kebun' | 'Lainnya';
+  category: 'Pembangunan' | 'Instalasi' | 'Listrik & Air' | 'Peralatan' | 'Lainnya';
   purchaseDate: string;
   purchasePrice: number;
   quantity: number;

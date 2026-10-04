@@ -41,14 +41,12 @@ const CATEGORIES_PENGELUARAN_OPERASIONAL = [
   'Lainnya',
 ];
 
+// Kategori Aset/Investasi disamakan dengan fitur Investasi Greenhouse
 const CATEGORIES_PENGELUARAN_INVESTASI = [
   'Pembangunan',
-  'Instalasi DFT',
-  'Listrik',
+  'Instalasi',
+  'Listrik & Air',
   'Peralatan',
-  'Struktur Bambu',
-  'Plastik UV / Insect Net',
-  'Tandon Air',
 ];
 
 export const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onClose, initialData }) => {
@@ -61,7 +59,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onCl
   const [amount, setAmount] = useState<string>('');
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>('Transfer Bank');
   const [cycleId, setCycleId] = useState<string>('');
-  const [tunnel, setTunnel] = useState<TunnelType>('Kedua Tunnel');
+  const [tunnel, setTunnel] = useState<TunnelType>('Semua Greenhouse');
   const [note, setNote] = useState('');
   const [receiptUrl, setReceiptUrl] = useState<string>('');
   const [error, setError] = useState<string | null>(null);
@@ -118,7 +116,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onCl
           const found = db.cycles.find((c) => c.id.toLowerCase() === parsed.cycleId?.toLowerCase());
           if (found) setCycleId(found.id);
         }
-        if (parsed.tunnel && ['Tunnel 1', 'Tunnel 2', 'Kedua Tunnel'].includes(parsed.tunnel)) {
+        if (parsed.tunnel && ['Greenhouse 1', 'Greenhouse 2', 'Semua Greenhouse'].includes(parsed.tunnel)) {
           setTunnel(parsed.tunnel as TunnelType);
         }
         if (parsed.paymentMethod) {
@@ -481,7 +479,7 @@ export const TransactionModal: React.FC<TransactionModalProps> = ({ isOpen, onCl
                     {t.name} ({t.widthM} x {t.lengthM} m)
                   </option>
                 ))}
-                <option value="Kedua Tunnel">Semua / Gabungan Greenhouse</option>
+                <option value="Semua Greenhouse">Semua / Gabungan Greenhouse</option>
                 <option value="Umum / Fasilitas">Umum / Fasilitas (Tandon, Panel)</option>
               </select>
             </div>

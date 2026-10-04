@@ -25,7 +25,7 @@ export const HarvestSalesPage: React.FC<HarvestSalesPageProps> = ({ onNavigate }
   // Form states
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [cycleId, setCycleId] = useState(db.cycles[0]?.id || 'S001');
-  const [tunnel, setTunnel] = useState<TunnelType>('Tunnel 1');
+  const [tunnel, setTunnel] = useState<TunnelType>('Greenhouse 1');
   const [totalWeightKg, setTotalWeightKg] = useState('');
   const [gradeAKg, setGradeAKg] = useState('');
   const [gradeBKg, setGradeBKg] = useState('');
@@ -42,7 +42,7 @@ export const HarvestSalesPage: React.FC<HarvestSalesPageProps> = ({ onNavigate }
     setEditingHarvest(null);
     setDate(new Date().toISOString().slice(0, 10));
     setCycleId(db.cycles[0]?.id || 'S001');
-    setTunnel('Tunnel 1');
+    setTunnel('Greenhouse 1');
     setTotalWeightKg('');
     setGradeAKg('');
     setGradeBKg('');
@@ -215,7 +215,7 @@ export const HarvestSalesPage: React.FC<HarvestSalesPageProps> = ({ onNavigate }
             <thead className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-600 uppercase tracking-wider">
               <tr>
                 <th className="py-3.5 px-4">Tanggal & ID</th>
-                <th className="py-3.5 px-4">Siklus & Tunnel</th>
+                <th className="py-3.5 px-4">Siklus & Greenhouse</th>
                 <th className="py-3.5 px-4 text-center">Grade A</th>
                 <th className="py-3.5 px-4 text-center">Grade B</th>
                 <th className="py-3.5 px-4 text-center">Grade C</th>
@@ -354,7 +354,7 @@ export const HarvestSalesPage: React.FC<HarvestSalesPageProps> = ({ onNavigate }
                 </div>
               </div>
               <div>
-                <label className="font-semibold text-slate-700 block mb-1">Tunnel</label>
+                <label className="font-semibold text-slate-700 block mb-1">Greenhouse</label>
                 <select
                   value={tunnel}
                   onChange={(e) => setTunnel(e.target.value as TunnelType)}
@@ -365,7 +365,7 @@ export const HarvestSalesPage: React.FC<HarvestSalesPageProps> = ({ onNavigate }
                       {t.name} ({t.widthM} x {t.lengthM} m)
                     </option>
                   ))}
-                  <option value="Kedua Tunnel">Semua / Gabungan Tunnel</option>
+                  <option value="Semua Greenhouse">Semua / Gabungan Greenhouse</option>
                 </select>
               </div>
 

@@ -137,7 +137,7 @@ export const ReportsPage: React.FC = () => {
       const monthTrxs = db.transactions.filter((t) => {
         if (!t.date || !t.date.startsWith(ym)) return false;
         if (selectedTunnelFilter !== 'ALL') {
-          if (t.tunnel && t.tunnel !== selectedTunnelFilter && t.tunnel !== 'Kedua Tunnel' && t.tunnel !== 'Semua / Gabungan Greenhouse') {
+          if (t.tunnel && t.tunnel !== selectedTunnelFilter && t.tunnel !== 'Semua Greenhouse') {
             return false;
           }
         }
@@ -624,7 +624,7 @@ export const ReportsPage: React.FC = () => {
         if (
           includeLabor &&
           (t.category.toLowerCase().includes('gaji') || t.category.toLowerCase().includes('payroll')) &&
-          (t.tunnel === c.tunnel || t.tunnel === 'Kedua Tunnel')
+          (t.tunnel === c.tunnel || t.tunnel === 'Semua Greenhouse')
         ) {
           const trxDate = new Date(t.date).getTime();
           const startDate = new Date(c.startDate).getTime();
@@ -1645,7 +1645,7 @@ export const ReportsPage: React.FC = () => {
               <thead className="bg-slate-50 border-b border-slate-200 text-[11px] font-bold text-slate-600 uppercase">
                 <tr>
                   <th className="p-3">Siklus</th>
-                  <th className="p-3">Tunnel</th>
+                  <th className="p-3">Greenhouse</th>
                   <th className="p-3 text-center">Populasi</th>
                   <th className="p-3 text-right">Biaya Produksi</th>
                   <th className="p-3 text-right">Biaya/Pohon</th>

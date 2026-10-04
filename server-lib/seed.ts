@@ -6,26 +6,26 @@ export const SEED_DATABASE: any = {
   "tunnels": [
     {
       "id": "T1",
-      "name": "Tunnel 1",
+      "name": "Greenhouse 1",
       "lengthM": 48,
       "widthM": 8,
       "capacityPlants": 1000,
       "systemType": "DFT Hydroponic",
       "structureMaterial": "Bambu Petung Super",
       "status": "Aktif",
-      "notes": "Tunnel 1 sisi timur (8 x 48 m) · 48 gully talang trapesium foodgrade · Kapasitas 1.000 netpot",
+      "notes": "Greenhouse 1 sisi timur (8 x 48 m) · 48 gully talang trapesium foodgrade · Kapasitas 1.000 netpot",
       "createdAt": "2026-01-10T08:00:00Z"
     },
     {
       "id": "T2",
-      "name": "Tunnel 2",
+      "name": "Greenhouse 2",
       "lengthM": 48,
       "widthM": 7,
       "capacityPlants": 1000,
       "systemType": "DFT Hydroponic",
       "structureMaterial": "Bambu Petung Super",
       "status": "Aktif",
-      "notes": "Tunnel 2 sisi barat (7 x 48 m) · 48 gully talang trapesium foodgrade · Kapasitas 1.000 netpot",
+      "notes": "Greenhouse 2 sisi barat (7 x 48 m) · 48 gully talang trapesium foodgrade · Kapasitas 1.000 netpot",
       "createdAt": "2026-01-10T08:00:00Z"
     }
   ],
@@ -34,13 +34,13 @@ export const SEED_DATABASE: any = {
       "id": "INV-001",
       "date": "2026-01-10",
       "category": "Pembangunan",
-      "itemName": "Bambu Petung Super (Struktur Utama 2 Tunnel)",
+      "itemName": "Bambu Petung Super (Struktur Utama 2 Greenhouse)",
       "quantity": 450,
       "unit": "batang",
       "unitPrice": 65000,
       "totalAmount": 29250000,
       "supplier": "Sentra Bambu Wonosobo",
-      "tunnel": "Kedua Tunnel",
+      "tunnel": "Semua Greenhouse",
       "notes": "Bambu tua petung direndam anti bubuk untuk tiang dan reng (T1: 8x48m, T2: 7x48m)"
     },
     {
@@ -53,8 +53,8 @@ export const SEED_DATABASE: any = {
       "unitPrice": 4800000,
       "totalAmount": 9600000,
       "supplier": "Plastik Pertanian Surya",
-      "tunnel": "Kedua Tunnel",
-      "notes": "Penutup atap tunnel 1 & 2 anti radiasi berlebih"
+      "tunnel": "Semua Greenhouse",
+      "notes": "Penutup atap greenhouse 1 & 2 anti radiasi berlebih"
     },
     {
       "id": "INV-003",
@@ -66,7 +66,7 @@ export const SEED_DATABASE: any = {
       "unitPrice": 1350000,
       "totalAmount": 5400000,
       "supplier": "Toko Tani Makmur",
-      "tunnel": "Kedua Tunnel",
+      "tunnel": "Semua Greenhouse",
       "notes": "Dinding keliling pelindung hama thrips dan kutu kebul"
     },
     {
@@ -79,7 +79,7 @@ export const SEED_DATABASE: any = {
       "unitPrice": 8500000,
       "totalAmount": 8500000,
       "supplier": "TB Sumber Rejeki",
-      "tunnel": "Kedua Tunnel",
+      "tunnel": "Semua Greenhouse",
       "notes": "Dudukan beton cor agar bambu tidak bersentuhan langsung tanah"
     },
     {
@@ -92,7 +92,7 @@ export const SEED_DATABASE: any = {
       "unitPrice": 2700000,
       "totalAmount": 16200000,
       "supplier": "Mandor Wawan",
-      "tunnel": "Kedua Tunnel",
+      "tunnel": "Semua Greenhouse",
       "notes": "Pembangunan konstruksi bambu, atap UV dan insect net"
     },
     {
@@ -105,7 +105,7 @@ export const SEED_DATABASE: any = {
       "unitPrice": 285000,
       "totalAmount": 13680000,
       "supplier": "Hidroponik Agro Mandiri",
-      "tunnel": "Tunnel 1",
+      "tunnel": "Greenhouse 1",
       "notes": "Talang aliran nutrisi DFT kemiringan 1-2%"
     },
     {
@@ -118,8 +118,8 @@ export const SEED_DATABASE: any = {
       "unitPrice": 285000,
       "totalAmount": 13680000,
       "supplier": "Hidroponik Agro Mandiri",
-      "tunnel": "Tunnel 2",
-      "notes": "Talang aliran nutrisi DFT Tunnel 2"
+      "tunnel": "Greenhouse 2",
+      "notes": "Talang aliran nutrisi DFT Greenhouse 2"
     },
     {
       "id": "INV-008",
@@ -131,7 +131,7 @@ export const SEED_DATABASE: any = {
       "unitPrice": 4200000,
       "totalAmount": 8400000,
       "supplier": "Depo Tangki Air",
-      "tunnel": "Kedua Tunnel",
+      "tunnel": "Semua Greenhouse",
       "notes": "Tandon tamping nutrisi pekat dan distribusi pompa"
     },
     {
@@ -144,7 +144,7 @@ export const SEED_DATABASE: any = {
       "unitPrice": 6800000,
       "totalAmount": 6800000,
       "supplier": "Sentra Pompa & Pipa",
-      "tunnel": "Kedua Tunnel",
+      "tunnel": "Semua Greenhouse",
       "notes": "Sirkulasi 24 jam dengan sistem bypass pengatur debit"
     },
     {
@@ -215,14 +215,14 @@ export const SEED_DATABASE: any = {
     },
     {
       "id": "AST-002",
-      "name": "Instalasi Gully DFT 2 Tunnel (96 Batang + Pipa Header)",
+      "name": "Instalasi Gully DFT 2 Greenhouse (96 Batang + Pipa Header)",
       "category": "Instalasi DFT",
       "purchaseDate": "2026-02-20",
       "purchasePrice": 27360000,
       "quantity": 2,
       "condition": "Sangat Baik",
       "economicLifeYears": 8,
-      "location": "Tunnel 1 & Tunnel 2",
+      "location": "Greenhouse 1 & Greenhouse 2",
       "notes": "Sistem DFT dengan genangan nutrisi 4-5cm"
     },
     {
@@ -303,7 +303,7 @@ export const SEED_DATABASE: any = {
       "id": "S001",
       "name": "Siklus 1 - Golden Emerald (Sukses Panen)",
       "melonVariety": "Golden Emerald Hydro",
-      "tunnel": "Tunnel 1",
+      "tunnel": "Greenhouse 1",
       "startDate": "2026-05-15",
       "plantingDate": "2026-06-01",
       "harvestTargetDate": "2026-08-15",
@@ -318,7 +318,7 @@ export const SEED_DATABASE: any = {
       "id": "S002",
       "name": "Siklus 2 - Inthanon RZ Eksklusif",
       "melonVariety": "Inthanon Rijk Zwaan",
-      "tunnel": "Tunnel 2",
+      "tunnel": "Greenhouse 2",
       "startDate": "2026-08-01",
       "plantingDate": "2026-08-18",
       "harvestTargetDate": "2026-11-02",
@@ -334,7 +334,7 @@ export const SEED_DATABASE: any = {
       "id": "HRV-001",
       "date": "2026-08-15",
       "cycleId": "S001",
-      "tunnel": "Tunnel 1",
+      "tunnel": "Greenhouse 1",
       "totalWeightKg": 1100,
       "gradeAKg": 880,
       "gradeBKg": 170,
@@ -349,7 +349,7 @@ export const SEED_DATABASE: any = {
       "id": "HRV-002",
       "date": "2026-08-18",
       "cycleId": "S001",
-      "tunnel": "Tunnel 1",
+      "tunnel": "Greenhouse 1",
       "totalWeightKg": 540,
       "gradeAKg": 340,
       "gradeBKg": 150,
@@ -516,7 +516,7 @@ export const SEED_DATABASE: any = {
       "amount": 150000000,
       "paymentMethod": "Transfer Bank",
       "tunnel": "Umum / Fasilitas",
-      "note": "Setoran modal investasi awal pembangunan greenhouse 2 tunnel",
+      "note": "Setoran modal investasi awal pembangunan 2 greenhouse",
       "createdAt": "2026-01-05T08:00:00Z"
     },
     {
@@ -528,7 +528,7 @@ export const SEED_DATABASE: any = {
       "subcategory": "Bambu Petung",
       "amount": 29250000,
       "paymentMethod": "Transfer Bank",
-      "tunnel": "Kedua Tunnel",
+      "tunnel": "Semua Greenhouse",
       "note": "Pembelian 450 batang bambu petung super",
       "createdAt": "2026-01-10T10:30:00Z"
     },
@@ -541,8 +541,8 @@ export const SEED_DATABASE: any = {
       "subcategory": "Plastik UV",
       "amount": 9600000,
       "paymentMethod": "Transfer Bank",
-      "tunnel": "Kedua Tunnel",
-      "note": "Plastik UV 14% 200 micron untuk 2 tunnel",
+      "tunnel": "Semua Greenhouse",
+      "note": "Plastik UV 14% 200 micron untuk 2 greenhouse",
       "createdAt": "2026-01-18T11:00:00Z"
     },
     {
@@ -554,7 +554,7 @@ export const SEED_DATABASE: any = {
       "subcategory": "Insect Net",
       "amount": 5400000,
       "paymentMethod": "Transfer Bank",
-      "tunnel": "Kedua Tunnel",
+      "tunnel": "Semua Greenhouse",
       "note": "Insect net 50 mesh keliling greenhouse",
       "createdAt": "2026-01-22T14:15:00Z"
     },
@@ -567,7 +567,7 @@ export const SEED_DATABASE: any = {
       "subcategory": "Pondasi & Hebel",
       "amount": 8500000,
       "paymentMethod": "Transfer Bank",
-      "tunnel": "Kedua Tunnel",
+      "tunnel": "Semua Greenhouse",
       "note": "Pondasi cor tiang & hebel pembatas keliling",
       "createdAt": "2026-01-25T09:00:00Z"
     },
@@ -580,7 +580,7 @@ export const SEED_DATABASE: any = {
       "subcategory": "Upah Tukang",
       "amount": 16200000,
       "paymentMethod": "Tunai / Cash",
-      "tunnel": "Kedua Tunnel",
+      "tunnel": "Semua Greenhouse",
       "note": "Pelunasan upah tukang dan kuli rangka bambu",
       "createdAt": "2026-02-05T16:00:00Z"
     },
@@ -593,8 +593,8 @@ export const SEED_DATABASE: any = {
       "subcategory": "Gully & Netpot",
       "amount": 27360000,
       "paymentMethod": "Transfer Bank",
-      "tunnel": "Kedua Tunnel",
-      "note": "Talang DFT foodgrade 96 batang untuk Tunnel 1 & 2",
+      "tunnel": "Semua Greenhouse",
+      "note": "Talang DFT foodgrade 96 batang untuk Greenhouse 1 & 2",
       "createdAt": "2026-02-12T13:00:00Z"
     },
     {
@@ -606,7 +606,7 @@ export const SEED_DATABASE: any = {
       "subcategory": "Tandon Air",
       "amount": 8400000,
       "paymentMethod": "Transfer Bank",
-      "tunnel": "Kedua Tunnel",
+      "tunnel": "Semua Greenhouse",
       "note": "Tandon PE 5000 Liter x 2 unit",
       "createdAt": "2026-02-18T10:00:00Z"
     },
@@ -619,7 +619,7 @@ export const SEED_DATABASE: any = {
       "subcategory": "Pompa & Pipa",
       "amount": 6800000,
       "paymentMethod": "Transfer Bank",
-      "tunnel": "Kedua Tunnel",
+      "tunnel": "Semua Greenhouse",
       "note": "Pompa submersible dan instalasi pipa pvc",
       "createdAt": "2026-02-20T15:20:00Z"
     },
@@ -658,7 +658,7 @@ export const SEED_DATABASE: any = {
       "amount": 840000,
       "paymentMethod": "Transfer Bank",
       "cycleId": "S001",
-      "tunnel": "Tunnel 1",
+      "tunnel": "Greenhouse 1",
       "note": "2 pack benih Golden Emerald F1 (1000 biji)",
       "createdAt": "2026-05-18T09:30:00Z"
     },
@@ -671,7 +671,7 @@ export const SEED_DATABASE: any = {
       "amount": 450000,
       "paymentMethod": "Tunai / Cash",
       "cycleId": "S001",
-      "tunnel": "Tunnel 1",
+      "tunnel": "Greenhouse 1",
       "note": "6 slab rockwool cultilene untuk semai",
       "createdAt": "2026-05-20T10:00:00Z"
     },
@@ -684,7 +684,7 @@ export const SEED_DATABASE: any = {
       "amount": 3600000,
       "paymentMethod": "Transfer Bank",
       "cycleId": "S001",
-      "tunnel": "Tunnel 1",
+      "tunnel": "Greenhouse 1",
       "note": "8 set nutrisi AB Mix pekatan melon hidroponik",
       "createdAt": "2026-06-01T11:15:00Z"
     },
@@ -697,7 +697,7 @@ export const SEED_DATABASE: any = {
       "amount": 580000,
       "paymentMethod": "Tunai / Cash",
       "cycleId": "S001",
-      "tunnel": "Tunnel 1",
+      "tunnel": "Greenhouse 1",
       "note": "Insektisida Regent dan Fungisida Antracol pencegahan",
       "createdAt": "2026-06-15T15:00:00Z"
     },
@@ -710,7 +710,7 @@ export const SEED_DATABASE: any = {
       "amount": 650000,
       "paymentMethod": "Transfer Bank",
       "cycleId": "S001",
-      "tunnel": "Tunnel 1",
+      "tunnel": "Greenhouse 1",
       "note": "Token listrik operasional pompa bulan Juni",
       "createdAt": "2026-06-30T17:00:00Z"
     },
@@ -723,7 +723,7 @@ export const SEED_DATABASE: any = {
       "amount": 2500000,
       "paymentMethod": "Transfer Bank",
       "cycleId": "S001",
-      "tunnel": "Tunnel 1",
+      "tunnel": "Greenhouse 1",
       "note": "Gaji pengelola kebun bulan Juli & pruning",
       "createdAt": "2026-07-10T16:30:00Z"
     },
@@ -736,7 +736,7 @@ export const SEED_DATABASE: any = {
       "amount": 1450000,
       "paymentMethod": "Transfer Bank",
       "cycleId": "S001",
-      "tunnel": "Tunnel 1",
+      "tunnel": "Greenhouse 1",
       "note": "Box kardus kemasan melon eksklusif isi 2",
       "createdAt": "2026-07-20T13:45:00Z"
     },
@@ -749,7 +749,7 @@ export const SEED_DATABASE: any = {
       "amount": 720000,
       "paymentMethod": "Transfer Bank",
       "cycleId": "S001",
-      "tunnel": "Tunnel 1",
+      "tunnel": "Greenhouse 1",
       "note": "Token listrik pompa fase pengisian buah bulan Juli",
       "createdAt": "2026-07-31T18:00:00Z"
     },
@@ -762,7 +762,7 @@ export const SEED_DATABASE: any = {
       "amount": 2500000,
       "paymentMethod": "Transfer Bank",
       "cycleId": "S001",
-      "tunnel": "Tunnel 1",
+      "tunnel": "Greenhouse 1",
       "note": "Gaji pengelola dan upah sortir panen",
       "createdAt": "2026-08-10T16:00:00Z"
     },
@@ -775,7 +775,7 @@ export const SEED_DATABASE: any = {
       "amount": 600000,
       "paymentMethod": "Tunai / Cash",
       "cycleId": "S001",
-      "tunnel": "Tunnel 1",
+      "tunnel": "Greenhouse 1",
       "note": "Sewa mobil pick-up pengiriman hasil panen",
       "createdAt": "2026-08-12T11:00:00Z"
     },
@@ -787,7 +787,7 @@ export const SEED_DATABASE: any = {
       "amount": 38500000,
       "paymentMethod": "Transfer Bank",
       "cycleId": "S001",
-      "tunnel": "Tunnel 1",
+      "tunnel": "Greenhouse 1",
       "note": "Hasil penjualan 1.100 kg melon Golden Emerald panen perdana",
       "createdAt": "2026-08-15T15:30:00Z"
     },
@@ -799,7 +799,7 @@ export const SEED_DATABASE: any = {
       "amount": 17280000,
       "paymentMethod": "Transfer Bank",
       "cycleId": "S001",
-      "tunnel": "Tunnel 1",
+      "tunnel": "Greenhouse 1",
       "note": "Hasil penjualan 540 kg melon Golden Emerald sapu bersih",
       "createdAt": "2026-08-18T16:00:00Z"
     },
@@ -812,7 +812,7 @@ export const SEED_DATABASE: any = {
       "amount": 980000,
       "paymentMethod": "Transfer Bank",
       "cycleId": "S002",
-      "tunnel": "Tunnel 2",
+      "tunnel": "Greenhouse 2",
       "note": "1 pack benih Inthanon RZ isi 1000 butir",
       "createdAt": "2026-08-05T10:00:00Z"
     },
@@ -825,7 +825,7 @@ export const SEED_DATABASE: any = {
       "amount": 450000,
       "paymentMethod": "Tunai / Cash",
       "cycleId": "S002",
-      "tunnel": "Tunnel 2",
+      "tunnel": "Greenhouse 2",
       "note": "Rockwool semai siklus 2",
       "createdAt": "2026-08-10T14:00:00Z"
     },
@@ -838,7 +838,7 @@ export const SEED_DATABASE: any = {
       "amount": 4050000,
       "paymentMethod": "Transfer Bank",
       "cycleId": "S002",
-      "tunnel": "Tunnel 2",
+      "tunnel": "Greenhouse 2",
       "note": "9 set nutrisi AB Mix formula khusus Inthanon netting",
       "createdAt": "2026-08-20T11:20:00Z"
     },
@@ -851,7 +851,7 @@ export const SEED_DATABASE: any = {
       "amount": 690000,
       "paymentMethod": "Transfer Bank",
       "cycleId": "S002",
-      "tunnel": "Tunnel 2",
+      "tunnel": "Greenhouse 2",
       "note": "Token listrik pompa sirkulasi bulan Agustus",
       "createdAt": "2026-08-31T17:30:00Z"
     },
@@ -864,7 +864,7 @@ export const SEED_DATABASE: any = {
       "amount": 2500000,
       "paymentMethod": "Transfer Bank",
       "cycleId": "S002",
-      "tunnel": "Tunnel 2",
+      "tunnel": "Greenhouse 2",
       "note": "Gaji pengelola kebun bulan September & polinasi bunga",
       "createdAt": "2026-09-10T16:00:00Z"
     }
@@ -918,7 +918,7 @@ export const SEED_DATABASE: any = {
       "address": "Jl. Raya Kebun Melati No. 12, Sleman, Yogyakarta",
       "position": "Kepala Kebun & Agronomis Melon",
       "division": "Operasional Kebun",
-      "greenhouse": "Tunnel 1",
+      "greenhouse": "Greenhouse 1",
       "workArea": "Budidaya",
       "joinDate": "2025-06-01",
       "employmentStatus": "Tetap",
@@ -943,7 +943,7 @@ export const SEED_DATABASE: any = {
       "address": "Dusun Jetis RT 03/05, Tempel, Sleman",
       "position": "Teknisi Irigasi DFT & Kelistrikan",
       "division": "Maintenance & Teknis",
-      "greenhouse": "Kedua Tunnel",
+      "greenhouse": "Semua Greenhouse",
       "workArea": "Maintenance",
       "joinDate": "2025-08-15",
       "employmentStatus": "Tetap",
@@ -968,7 +968,7 @@ export const SEED_DATABASE: any = {
       "address": "Jl. Kaliurang KM 14, Ngaglik, Sleman",
       "position": "Operator Nutrisi & EC Monitoring",
       "division": "Operasional Kebun",
-      "greenhouse": "Tunnel 2",
+      "greenhouse": "Greenhouse 2",
       "workArea": "Nutrisi",
       "joinDate": "2025-10-01",
       "employmentStatus": "Tetap",
@@ -993,7 +993,7 @@ export const SEED_DATABASE: any = {
       "address": "Desa Harjobinangun, Pakem, Sleman",
       "position": "Tenaga Perawatan & Pruning Tanaman",
       "division": "Operasional Kebun",
-      "greenhouse": "Tunnel 1",
+      "greenhouse": "Greenhouse 1",
       "workArea": "Penyiraman",
       "joinDate": "2026-01-10",
       "employmentStatus": "Harian",
@@ -1018,7 +1018,7 @@ export const SEED_DATABASE: any = {
       "address": "Jl. Palagan KM 9, Sariharjo, Ngaglik",
       "position": "Operator Panen, QC & Packing",
       "division": "QC & Pasca Panen",
-      "greenhouse": "Tunnel 2",
+      "greenhouse": "Greenhouse 2",
       "workArea": "Panen",
       "joinDate": "2026-02-01",
       "employmentStatus": "Harian",
@@ -1089,7 +1089,7 @@ export const SEED_DATABASE: any = {
       "employeeId": "EMP-001",
       "employeeName": "Budi Santoso",
       "date": "2026-10-01",
-      "greenhouse": "Tunnel 1",
+      "greenhouse": "Greenhouse 1",
       "shiftId": "SHIFT-01",
       "shiftName": "Shift Pagi (07:00 - 15:00)",
       "clockIn": "06:55",
@@ -1107,7 +1107,7 @@ export const SEED_DATABASE: any = {
       "employeeId": "EMP-002",
       "employeeName": "Andi Pratama",
       "date": "2026-10-01",
-      "greenhouse": "Kedua Tunnel",
+      "greenhouse": "Semua Greenhouse",
       "shiftId": "SHIFT-01",
       "shiftName": "Shift Pagi (07:00 - 15:00)",
       "clockIn": "07:22",
@@ -1125,7 +1125,7 @@ export const SEED_DATABASE: any = {
       "employeeId": "EMP-003",
       "employeeName": "Dedi Kurniawan",
       "date": "2026-10-01",
-      "greenhouse": "Tunnel 2",
+      "greenhouse": "Greenhouse 2",
       "shiftId": "SHIFT-01",
       "shiftName": "Shift Pagi (07:00 - 15:00)",
       "clockIn": "07:02",
@@ -1143,7 +1143,7 @@ export const SEED_DATABASE: any = {
       "employeeId": "EMP-004",
       "employeeName": "Rudi Hartono",
       "date": "2026-10-01",
-      "greenhouse": "Tunnel 1",
+      "greenhouse": "Greenhouse 1",
       "shiftId": "SHIFT-01",
       "shiftName": "Shift Pagi (07:00 - 15:00)",
       "clockIn": "07:00",
@@ -1152,7 +1152,7 @@ export const SEED_DATABASE: any = {
       "lateMinutes": 0,
       "workHours": 7,
       "overtimeHours": 0,
-      "note": "Pembersihan daun bawah (pruning) Tunnel 1",
+      "note": "Pembersihan daun bawah (pruning) Greenhouse 1",
       "method": "clock_in_out",
       "createdAt": "2026-10-01T07:00:00.000Z"
     },
@@ -1161,7 +1161,7 @@ export const SEED_DATABASE: any = {
       "employeeId": "EMP-005",
       "employeeName": "Agus Setiawan",
       "date": "2026-10-01",
-      "greenhouse": "Tunnel 2",
+      "greenhouse": "Greenhouse 2",
       "shiftId": "SHIFT-01",
       "shiftName": "Shift Pagi (07:00 - 15:00)",
       "status": "Izin",
@@ -1213,7 +1213,7 @@ export const SEED_DATABASE: any = {
       "overtimeRate": 25000,
       "totalAmount": 50000,
       "taskDescription": "Perbaikan darurat kebocoran sambungan gully DFT",
-      "greenhouse": "Kedua Tunnel",
+      "greenhouse": "Semua Greenhouse",
       "status": "Approved",
       "approvedBy": "Ibnu (Owner)",
       "approvedAt": "2026-10-01T17:15:00.000Z",
@@ -1229,8 +1229,8 @@ export const SEED_DATABASE: any = {
       "durationHours": 3,
       "overtimeRate": 20000,
       "totalAmount": 60000,
-      "taskDescription": "Lembur semprot bio-pestisida sore hari seluruh tunnel",
-      "greenhouse": "Tunnel 1",
+      "taskDescription": "Lembur semprot bio-pestisida sore hari seluruh greenhouse",
+      "greenhouse": "Greenhouse 1",
       "status": "Pending",
       "createdAt": "2026-10-01"
     }
@@ -1245,7 +1245,7 @@ export const SEED_DATABASE: any = {
       "employeeName": "Budi Santoso",
       "employeeNik": "NIK-GH-2026-001",
       "position": "Kepala Kebun & Agronomis Melon",
-      "greenhouse": "Tunnel 1",
+      "greenhouse": "Greenhouse 1",
       "salaryType": "Bulanan",
       "daysPresent": 26,
       "daysLate": 1,
@@ -1292,7 +1292,7 @@ export const SEED_DATABASE: any = {
       "employeeName": "Andi Pratama",
       "employeeNik": "NIK-GH-2026-002",
       "position": "Teknisi Irigasi DFT & Kelistrikan",
-      "greenhouse": "Kedua Tunnel",
+      "greenhouse": "Semua Greenhouse",
       "salaryType": "Bulanan",
       "daysPresent": 25,
       "daysLate": 2,
@@ -1339,7 +1339,7 @@ export const SEED_DATABASE: any = {
       "employeeName": "Budi Santoso",
       "employeeNik": "NIK-GH-2026-001",
       "position": "Kepala Kebun & Agronomis Melon",
-      "greenhouse": "Tunnel 1",
+      "greenhouse": "Greenhouse 1",
       "salaryType": "Bulanan",
       "daysPresent": 1,
       "daysLate": 0,
@@ -1381,7 +1381,7 @@ export const SEED_DATABASE: any = {
       "employeeName": "Andi Pratama",
       "employeeNik": "NIK-GH-2026-002",
       "position": "Teknisi Irigasi DFT & Kelistrikan",
-      "greenhouse": "Kedua Tunnel",
+      "greenhouse": "Semua Greenhouse",
       "salaryType": "Bulanan",
       "daysPresent": 1,
       "daysLate": 1,

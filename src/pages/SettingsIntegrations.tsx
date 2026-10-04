@@ -212,7 +212,7 @@ function doPost(e) {
     if (action === "add_transaction") {
       var sheet = getOrCreateSheet(ss, "TRANSAKSI", [
         "ID", "Tanggal", "Jenis", "Kelompok", "Kategori", "Subkategori",
-        "Nominal", "Metode Bayar", "Siklus ID", "Tunnel", "Keterangan", "Dibuat Pada"
+        "Nominal", "Metode Bayar", "Siklus ID", "Greenhouse", "Keterangan", "Dibuat Pada"
       ]);
       
       var row = [
@@ -225,7 +225,7 @@ function doPost(e) {
         payload.amount || 0,
         payload.paymentMethod || "Transfer Bank",
         payload.cycleId || "-",
-        payload.tunnel || "Kedua Tunnel",
+        payload.tunnel || "Semua Greenhouse",
         payload.note || "",
         new Date().toISOString()
       ];
@@ -241,20 +241,20 @@ function doPost(e) {
       if (payload.transactions && payload.transactions.length > 0) {
         syncTable(ss, "TRANSAKSI", [
           "ID", "Tanggal", "Jenis", "Kelompok", "Kategori", "Subkategori",
-          "Nominal", "Metode Bayar", "Siklus ID", "Tunnel", "Keterangan", "Dibuat Pada"
+          "Nominal", "Metode Bayar", "Siklus ID", "Greenhouse", "Keterangan", "Dibuat Pada"
         ], payload.transactions);
       }
       
       if (payload.cycles && payload.cycles.length > 0) {
         syncTable(ss, "SIKLUS", [
-          "ID Siklus", "Nama Siklus", "Varietas", "Tunnel", "Tgl Mulai", "Tgl Tanam",
+          "ID Siklus", "Nama Siklus", "Varietas", "Greenhouse", "Tgl Mulai", "Tgl Tanam",
           "Target Panen", "Tgl Panen Aktual", "Jumlah Tanaman", "Tanaman Hidup", "Tanaman Mati", "Status", "Catatan"
         ], payload.cycles);
       }
       
       if (payload.harvests && payload.harvests.length > 0) {
         syncTable(ss, "PANEN", [
-          "ID Panen", "Tanggal", "Siklus ID", "Tunnel", "Total Kg", "Grade A Kg",
+          "ID Panen", "Tanggal", "Siklus ID", "Greenhouse", "Total Kg", "Grade A Kg",
           "Grade B Kg", "Grade C Kg", "Harga/Kg", "Total Omzet", "Pembeli", "Status Bayar", "Catatan"
         ], payload.harvests);
       }
@@ -262,7 +262,7 @@ function doPost(e) {
       if (payload.investments && payload.investments.length > 0) {
         syncTable(ss, "INVESTASI", [
           "ID Investasi", "Tanggal", "Kategori", "Nama Barang", "Jumlah", "Satuan",
-          "Harga Satuan", "Total Nominal", "Supplier", "Tunnel", "Catatan"
+          "Harga Satuan", "Total Nominal", "Supplier", "Greenhouse", "Catatan"
         ], payload.investments);
       }
       
@@ -387,7 +387,7 @@ function syncTable(ss, sheetName, headers, rows) {
                   <span>INTEGRASI IPHONE SHORTCUTS & SIRI (VOICE ENTRY)</span>
                 </h3>
                 <p className="text-xs text-slate-500 mt-1 max-w-2xl leading-relaxed">
-                  Catat transaksi secara <em>hands-free</em> tanpa mengetik cukup berbicara ke iPhone saat Anda sedang berada di dalam tunnel greenhouse atau toko tani. Siri otomatis mengenali jenis transaksi, nominal rupiah, kategori pupuk/saprotan, dan nomor siklus.
+                  Catat transaksi secara <em>hands-free</em> tanpa mengetik cukup berbicara ke iPhone saat Anda sedang berada di dalam greenhouse atau toko tani. Siri otomatis mengenali jenis transaksi, nominal rupiah, kategori pupuk/saprotan, dan nomor siklus.
                 </p>
               </div>
               <div className="flex items-center gap-2 shrink-0">
@@ -518,7 +518,7 @@ function syncTable(ss, sheetName, headers, rows) {
                 {[
                   'Pengeluaran 250 ribu untuk beli nutrisi AB Mix siklus 1',
                   'Pemasukan 3.500.000 hasil panen melon 150 kg siklus 1',
-                  'Beli fungisida 85 ribu tunai di tunnel 2',
+                  'Beli fungisida 85 ribu tunai di greenhouse 2',
                   'Beli bibit melon fujisawa 450 ribu siklus 2',
                   'Bayar token listrik greenhouse 200 ribu',
                   'Beli bambu petung 2 juta untuk investasi',
@@ -596,7 +596,7 @@ function syncTable(ss, sheetName, headers, rows) {
                       </span>
                     </div>
                     <div className="p-2.5 rounded-lg bg-white border border-slate-200">
-                      <span className="text-[10px] text-slate-400 block font-semibold uppercase">Siklus & Tunnel</span>
+                      <span className="text-[10px] text-slate-400 block font-semibold uppercase">Siklus & Greenhouse</span>
                       <span className="font-bold text-slate-900">
                         {liveParsed.cycleId || 'Umum'} · {liveParsed.tunnel}
                       </span>
@@ -769,19 +769,19 @@ function syncTable(ss, sheetName, headers, rows) {
             </div>
             <div className="p-3 rounded-xl border border-slate-200 bg-slate-50">
               <span className="font-bold text-slate-900 block">2. TRANSAKSI</span>
-              <span className="text-slate-500">ID, Tanggal, Jenis, Kelompok, Kategori, Subkategori, Nominal, Metode Bayar, Siklus ID, Tunnel, Keterangan, Dibuat Pada</span>
+              <span className="text-slate-500">ID, Tanggal, Jenis, Kelompok, Kategori, Subkategori, Nominal, Metode Bayar, Siklus ID, Greenhouse, Keterangan, Dibuat Pada</span>
             </div>
             <div className="p-3 rounded-xl border border-slate-200 bg-slate-50">
               <span className="font-bold text-slate-900 block">3. SIKLUS</span>
-              <span className="text-slate-500">ID Siklus, Nama Siklus, Varietas, Tunnel, Tgl Mulai, Tgl Tanam, Target Panen, Tgl Panen Aktual, Jumlah Tanaman, Tanaman Hidup, Tanaman Mati, Status, Catatan</span>
+              <span className="text-slate-500">ID Siklus, Nama Siklus, Varietas, Greenhouse, Tgl Mulai, Tgl Tanam, Target Panen, Tgl Panen Aktual, Jumlah Tanaman, Tanaman Hidup, Tanaman Mati, Status, Catatan</span>
             </div>
             <div className="p-3 rounded-xl border border-slate-200 bg-slate-50">
               <span className="font-bold text-slate-900 block">4. PANEN</span>
-              <span className="text-slate-500">ID Panen, Tanggal, Siklus ID, Tunnel, Total Kg, Grade A Kg, Grade B Kg, Grade C Kg, Harga/Kg, Total Omzet, Pembeli, Status Bayar, Catatan</span>
+              <span className="text-slate-500">ID Panen, Tanggal, Siklus ID, Greenhouse, Total Kg, Grade A Kg, Grade B Kg, Grade C Kg, Harga/Kg, Total Omzet, Pembeli, Status Bayar, Catatan</span>
             </div>
             <div className="p-3 rounded-xl border border-slate-200 bg-slate-50">
               <span className="font-bold text-slate-900 block">5. INVESTASI</span>
-              <span className="text-slate-500">ID Investasi, Tanggal, Kategori, Nama Barang, Jumlah, Satuan, Harga Satuan, Total Nominal, Supplier, Tunnel, Catatan</span>
+              <span className="text-slate-500">ID Investasi, Tanggal, Kategori, Nama Barang, Jumlah, Satuan, Harga Satuan, Total Nominal, Supplier, Greenhouse, Catatan</span>
             </div>
             <div className="p-3 rounded-xl border border-slate-200 bg-slate-50">
               <span className="font-bold text-slate-900 block">6. ASET</span>
@@ -1030,7 +1030,7 @@ function syncTable(ss, sheetName, headers, rows) {
               <div>
                 <h4 className="font-bold text-sm text-slate-900 mb-1">Muat Ulang Data Demo</h4>
                 <p className="text-slate-500 leading-relaxed">
-                  Memuat sampel data greenhouse 2 tunnel (Siklus 1 sukses panen, Siklus 2 berjalan, belanja bambu petung, UV net, gully DFT, dan inventori).
+                  Memuat sampel data 2 greenhouse (Siklus 1 sukses panen, Siklus 2 berjalan, belanja bambu petung, UV net, gully DFT, dan inventori).
                 </p>
               </div>
               <button

@@ -10,14 +10,25 @@ import {
   X,
 } from 'lucide-react';
 
+// Kategori aset disamakan dengan fitur Investasi Greenhouse
 const ASSET_CATEGORIES = [
-  'Greenhouse',
-  'Instalasi DFT',
-  'Pompa & Kelistrikan',
-  'Alat Ukur & Sensor',
-  'Peralatan Kebun',
+  'Pembangunan',
+  'Instalasi',
+  'Listrik & Air',
+  'Peralatan',
   'Lainnya',
 ];
+
+// Pemetaan kategori lama (data yang sudah tersimpan) ke kategori baru
+const LEGACY_ASSET_CATEGORY_MAP: Record<string, string> = {
+  Greenhouse: 'Pembangunan',
+  'Instalasi DFT': 'Instalasi',
+  'Pompa & Kelistrikan': 'Listrik & Air',
+  'Alat Ukur & Sensor': 'Peralatan',
+  'Peralatan Kebun': 'Peralatan',
+};
+
+const normalizeAssetCategory = (value: string): string => LEGACY_ASSET_CATEGORY_MAP[value] || value;
 
 export const AssetsPage: React.FC = () => {
   const { db, metrics, addAsset, updateAsset, deleteAsset } = useGreenhouse();
@@ -26,26 +37,26 @@ export const AssetsPage: React.FC = () => {
 
   // Form state
   const [name, setName] = useState('');
-  const [category, setCategory] = useState<any>('Greenhouse');
+  const [category, setCategory] = useState<any>('Pembangunan');
   const [purchaseDate, setPurchaseDate] = useState(new Date().toISOString().slice(0, 10));
   const [purchasePrice, setPurchasePrice] = useState('');
   const [quantity, setQuantity] = useState('1');
   const [condition, setCondition] = useState<'Sangat Baik' | 'Baik' | 'Perlu Perbaikan' | 'Rusak'>('Baik');
   const [economicLifeYears, setEconomicLifeYears] = useState('5');
-  const [location, setLocation] = useState('Tunnel 1 & 2');
+  const [location, setLocation] = useState('Greenhouse 1 & 2');
   const [notes, setNotes] = useState('');
   const [error, setError] = useState<string | null>(null);
 
   const openAddModal = () => {
     setEditingAsset(null);
     setName('');
-    setCategory('Greenhouse');
+    setCategory('Pembangunan');
     setPurchaseDate(new Date().toISOString().slice(0, 10));
     setPurchasePrice('');
     setQuantity('1');
     setCondition('Baik');
     setEconomicLifeYears('5');
-    setLocation('Tunnel 1 & 2');
+    setLocation('Greenhouse 1 & 2');
     setNotes('');
     setError(null);
     setIsModalOpen(true);
@@ -54,7 +65,7 @@ export const AssetsPage: React.FC = () => {
   const openEditModal = (a: Asset) => {
     setEditingAsset(a);
     setName(a.name);
-    setCategory(a.category);
+    setCategory(normalizeAssetCategory(a.category));
     setPurchaseDate(a.purchaseDate);
     setPurchasePrice(String(a.purchasePrice));
     setQuantity(String(a.quantity));
@@ -114,7 +125,7 @@ export const AssetsPage: React.FC = () => {
             {formatCurrency(metrics.nilaiAset)}
           </h2>
           <p className="text-xs text-slate-500 mt-1">
-            Total nilai perolehan seluruh fasilitas bambu, instalasi DFT, tandon, dan alat ukur
+            Total nilai perolehan seluruh aset: pembangunan, instalasi, listrik & air, dan peralatan
           </p>
         </div>
         <button
@@ -168,7 +179,7 @@ export const AssetsPage: React.FC = () => {
                       </td>
                       <td className="py-3.5 px-4 whitespace-nowrap">
                         <span className="text-[11px] font-semibold text-slate-600 bg-slate-100 px-2 py-0.5 rounded-md">
-                          {a.category}
+                          {normalizeAssetCategory(a.category)}
                         </span>
                       </td>
                       <td className="py-3.5 px-4 whitespace-nowrap text-slate-600">
@@ -329,7 +340,7 @@ export const AssetsPage: React.FC = () => {
                     type="text"
                     value={location}
                     onChange={(e) => setLocation(e.target.value)}
-                    placeholder="Ruang Tandon, Tunnel 1, Gudang..."
+                    placeholder="Ruang Tandon, Greenhouse 1, Gudang..."
                     className="w-full p-2 rounded-lg border border-slate-300"
                   />
                 </div>

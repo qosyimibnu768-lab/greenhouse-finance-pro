@@ -121,7 +121,7 @@ export const exportFinancialReportToCSV = (
   rows.push([
     escapeCSV('ID Siklus'),
     escapeCSV('Nama Siklus'),
-    escapeCSV('Tunnel'),
+    escapeCSV('Greenhouse'),
     escapeCSV('Varietas'),
     escapeCSV('Populasi Pohon'),
     escapeCSV('Tanaman Hidup'),
@@ -242,7 +242,7 @@ export const exportFinancialReportToCSV = (
     escapeCSV('Kategori'),
     escapeCSV('Kelompok Biaya'),
     escapeCSV('Jumlah (Rp)'),
-    escapeCSV('Tunnel'),
+    escapeCSV('Greenhouse'),
     escapeCSV('Siklus'),
     escapeCSV('Metode Pembayaran'),
     escapeCSV('Keterangan / Deskripsi'),
@@ -465,7 +465,7 @@ export const exportFinancialReportToPDF = (
 
   autoTable(doc, {
     startY: currentY,
-    head: [['ID', 'Nama Siklus', 'Tunnel', 'Pohon', 'Panen', 'Omzet', 'Biaya', 'Laba', 'HPP/kg', 'ROI']],
+    head: [['ID', 'Nama Siklus', 'Greenhouse', 'Pohon', 'Panen', 'Omzet', 'Biaya', 'Laba', 'HPP/kg', 'ROI']],
     body: cycleBody,
     theme: 'striped',
     headStyles: { fillColor: [5, 150, 105], textColor: [255, 255, 255], fontSize: 7.5, fontStyle: 'bold' },

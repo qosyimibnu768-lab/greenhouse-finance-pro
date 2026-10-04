@@ -129,7 +129,7 @@ export const HarvestCalendarPage: React.FC = () => {
   }>({
     name: '',
     melonVariety: 'Inthanon RZ',
-    tunnel: tunnels[0]?.name || 'Tunnel 1',
+    tunnel: tunnels[0]?.name || 'Greenhouse 1',
     plantingDate: new Date().toISOString().split('T')[0],
     targetDays: 70,
     plantCount: 700,
@@ -438,7 +438,7 @@ export const HarvestCalendarPage: React.FC = () => {
             </div>
             <h2 className="text-2xl font-black tracking-tight">Kalender Panen & Jadwal Tanam</h2>
             <p className="text-xs sm:text-sm text-slate-300 mt-0.5 max-w-2xl">
-              Peta visual komprehensif fase HST, jadwal panen raya antar tunnel, serta proyeksi omzet kas masuk.
+              Peta visual komprehensif fase HST, jadwal panen raya antar greenhouse, serta proyeksi omzet kas masuk.
             </p>
           </div>
           <div className="flex flex-wrap items-center gap-2">
@@ -455,7 +455,7 @@ export const HarvestCalendarPage: React.FC = () => {
                 setNewCycleForm({
                   name: `Siklus ${tunnels[0]?.name.split(' ')[0] || 'T1'} - ${new Date().toLocaleDateString('id-ID', { month: 'short', year: '2-digit' })}`,
                   melonVariety: 'Inthanon RZ',
-                  tunnel: tunnels[0]?.name || 'Tunnel 1',
+                  tunnel: tunnels[0]?.name || 'Greenhouse 1',
                   plantingDate: new Date().toISOString().split('T')[0],
                   targetDays: 70,
                   plantCount: 700,
@@ -589,7 +589,7 @@ export const HarvestCalendarPage: React.FC = () => {
             onChange={(e) => setSelectedTunnel(e.target.value)}
             className="px-3 py-2 text-xs border border-slate-300 rounded-xl bg-white font-medium focus:ring-2 focus:ring-emerald-500 focus:outline-none"
           >
-            <option value="all">Semua Tunnel</option>
+            <option value="all">Semua Greenhouse</option>
             {tunnels.map((t) => (
               <option key={t.id} value={t.name}>
                 {t.name}
@@ -738,7 +738,7 @@ export const HarvestCalendarPage: React.FC = () => {
           <div className="border-b border-slate-100 pb-3 flex items-center justify-between">
             <div>
               <h3 className="font-extrabold text-base text-slate-900">
-                Visualisasi Progres Siklus & Rotasi Tanam Antar Tunnel
+                Visualisasi Progres Siklus & Rotasi Tanam Antar Greenhouse
               </h3>
               <p className="text-xs text-slate-500">
                 Pola penanaman bertingkat (Staggered) memastikan kontinuitas panen melon DFT tanpa periode kosong.
@@ -1004,7 +1004,7 @@ export const HarvestCalendarPage: React.FC = () => {
                   value={newCycleForm.name}
                   onChange={(e) => setNewCycleForm({ ...newCycleForm, name: e.target.value })}
                   required
-                  placeholder="Contoh: Siklus 2 Tunnel 1 - Inthanon"
+                  placeholder="Contoh: Siklus 2 Greenhouse 1 - Inthanon"
                   className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl focus:ring-2 focus:ring-emerald-500 focus:outline-none font-medium"
                 />
               </div>

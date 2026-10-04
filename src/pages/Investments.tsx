@@ -22,6 +22,9 @@ const CATEGORIES: { key: InvestmentCategory; label: string; icon: React.ReactNod
   { key: 'Peralatan', label: '4. Peralatan', icon: <Wrench className="w-4 h-4 text-purple-600" />, desc: 'EC/TDS meter, Milwaukee pH meter, refraktometer brix, timbangan digital' },
 ];
 
+const normalizeInvestmentCategory = (value: string): string =>
+  value === 'Instalasi DFT' ? 'Instalasi' : value;
+
 export const InvestmentsPage: React.FC = () => {
   const { db, metrics, addInvestment, updateInvestment, deleteInvestment } = useGreenhouse();
   const [selectedCategory, setSelectedCategory] = useState<InvestmentCategory | 'all'>('all');
@@ -36,7 +39,7 @@ export const InvestmentsPage: React.FC = () => {
   const [unit, setUnit] = useState('unit');
   const [unitPrice, setUnitPrice] = useState('');
   const [supplier, setSupplier] = useState('');
-  const [tunnel, setTunnel] = useState<TunnelType>('Kedua Tunnel');
+  const [tunnel, setTunnel] = useState<TunnelType>('Semua Greenhouse');
   const [notes, setNotes] = useState('');
   const [error, setError] = useState<string | null>(null);
 
@@ -51,7 +54,7 @@ export const InvestmentsPage: React.FC = () => {
     setUnit('unit');
     setUnitPrice('');
     setSupplier('');
-    setTunnel('Kedua Tunnel');
+    setTunnel('Semua Greenhouse');
     setNotes('');
     setError(null);
     setIsModalOpen(true);
@@ -235,7 +238,7 @@ export const InvestmentsPage: React.FC = () => {
                 <th className="py-3.5 px-4 text-center">Volume</th>
                 <th className="py-3.5 px-4 text-right">Harga Satuan</th>
                 <th className="py-3.5 px-4 text-right">Total Nominal</th>
-                <th className="py-3.5 px-4">Supplier & Tunnel</th>
+                <th className="py-3.5 px-4">Supplier & Greenhouse</th>
                 <th className="py-3.5 px-4 text-center">Aksi</th>
               </tr>
             </thead>
@@ -255,7 +258,7 @@ export const InvestmentsPage: React.FC = () => {
                     </td>
                     <td className="py-3.5 px-4 whitespace-nowrap">
                       <span className="font-semibold text-[11px] px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-200">
-                        {inv.category}
+                        {normalizeInvestmentCategory(inv.category)}
                       </span>
                     </td>
                     <td className="py-3.5 px-4">
@@ -413,7 +416,7 @@ export const InvestmentsPage: React.FC = () => {
                     onChange={(e) => setTunnel(e.target.value as TunnelType)}
                     className="w-full p-2 rounded-lg border border-slate-300"
                   >
-                    <option value="Kedua Tunnel">Semua / Gabungan Greenhouse</option>
+                    <option value="Semua Greenhouse">Semua / Gabungan Greenhouse</option>
                     {(db.tunnels || []).map((t) => (
                       <option key={t.id} value={t.name}>
                         {t.name} ({t.widthM} x {t.lengthM} m)

@@ -173,7 +173,7 @@ export const MobileNavDrawer: React.FC<MobileNavDrawerProps> = ({
             >
               {formatCurrency(metrics.saldoKas)}
             </span>
-            <span className="text-[10px] text-slate-400">{tunnels.length} Tunnel</span>
+            <span className="text-[10px] text-slate-400">{tunnels.length} Unit</span>
           </div>
         </div>
 

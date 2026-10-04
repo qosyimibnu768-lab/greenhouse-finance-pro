@@ -299,12 +299,14 @@ export function parseVoiceTransaction(rawText: string, currentBalance: number = 
     cycleId = 'S003';
   }
 
-  // 5. DETECT TUNNEL
-  let tunnel = 'Kedua Tunnel';
-  if (lower.includes('tunnel 1') || lower.includes('t1') || lower.includes('tunnel satu')) {
-    tunnel = 'Tunnel 1';
-  } else if (lower.includes('tunnel 2') || lower.includes('t2') || lower.includes('tunnel dua')) {
-    tunnel = 'Tunnel 2';
+  // 5. DETECT UNIT GREENHOUSE
+  let tunnel = 'Semua Greenhouse';
+  if (lower.includes('greenhouse 1') || lower.includes('tunnel 1') || lower.includes('t1') || lower.includes('tunnel satu') || lower.includes('greenhouse satu')) {
+    tunnel = 'Greenhouse 1';
+  } else if (lower.includes('greenhouse 2') || lower.includes('tunnel 2') || lower.includes('t2') || lower.includes('tunnel dua') || lower.includes('greenhouse dua')) {
+    tunnel = 'Greenhouse 2';
+  } else if (lower.includes('greenhouse 3') || lower.includes('tunnel 3') || lower.includes('t3')) {
+    tunnel = 'Greenhouse 3';
   }
 
   // 6. DETECT PAYMENT METHOD
@@ -335,7 +337,7 @@ export function parseVoiceTransaction(rawText: string, currentBalance: number = 
   let siriReply = '';
   if (amount > 0) {
     const cycleInfo = cycleId ? ` untuk ${cycleId}` : '';
-    const tunnelInfo = tunnel !== 'Kedua Tunnel' ? ` di ${tunnel}` : '';
+    const tunnelInfo = tunnel !== 'Semua Greenhouse' ? ` di ${tunnel}` : '';
     siriReply = `Tercatat! ${type === 'pemasukan' ? 'Pemasukan' : 'Pengeluaran'} ${formattedNominal} kategori ${category}${cycleInfo}${tunnelInfo}. Perkiraan saldo kas: ${formattedBalance}.`;
   } else {
     siriReply = `Saya mendengar "${text}", namun nominal rupiah belum terdeteksi. Silakan coba sebutkan nominalnya, contoh: "Pengeluaran 150 ribu beli AB Mix".`;

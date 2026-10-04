@@ -127,7 +127,7 @@ export async function syncTransactionToSheets(
     amount: trx.amount,
     paymentMethod: trx.paymentMethod,
     cycleId: trx.cycleId || '-',
-    tunnel: trx.tunnel || 'Kedua Tunnel',
+    tunnel: trx.tunnel || 'Semua Greenhouse',
     note: trx.note || '',
     timestamp: trx.createdAt || new Date().toISOString(),
   };
@@ -155,7 +155,7 @@ export async function syncAllDataToSheets(
       t.amount,
       t.paymentMethod || 'Transfer Bank',
       t.cycleId || '-',
-      t.tunnel || 'Kedua Tunnel',
+      t.tunnel || 'Semua Greenhouse',
       t.note || '',
       t.createdAt || new Date().toISOString(),
     ]),
