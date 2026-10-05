@@ -403,15 +403,15 @@ export const ReportsPage: React.FC = () => {
   // (rata-rata gaji tetap + tunjangan + listrik/air + operasional lainnya per bulan yang ada datanya)
   // dikalikan rata-rata durasi siklus tanam (fallback 70 hari / ~2,33 bulan bila belum ada data siklus).
   const actualFixedCostPerCycle = useMemo(() => {
-    const monthsWithData = monthlyComprehensivePnL.filter(
-      (m) => m.totalBiayaOperasionalBahan > 0 || m.totalGajiStaf > 0
+    const monthsWithFixedCost = monthlyComprehensivePnL.filter(
+      (m) => m.gajiPokok + m.tunjanganTransport + m.utilitasListrikAir + m.operasionalLainnya > 0
     );
-    if (monthsWithData.length === 0) return 0;
+    if (monthsWithFixedCost.length === 0) return 0;
     const fixedPerMonth =
-      monthsWithData.reduce(
+      monthsWithFixedCost.reduce(
         (s, m) => s + m.gajiPokok + m.tunjanganTransport + m.utilitasListrikAir + m.operasionalLainnya,
         0
-      ) / monthsWithData.length;
+      ) / monthsWithFixedCost.length;
     if (fixedPerMonth <= 0) return 0;
     const cycleDays =
       db.cycles.length > 0
