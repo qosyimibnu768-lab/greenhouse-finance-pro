@@ -480,9 +480,14 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSyncTime, setLastSyncTime] = useState<string>(() => new Date().toISOString());
   const lastSeenVersionRef = useRef<number>(0);
+  const saveRevisionRef = useRef<number>(0);
 
-  // Save state: local update + push to server
+  // Save state: local update + push to server.
+  // - dbRef disinkronkan segera agar mutasi berantai tidak saling menimpa.
+  // - Respons server hanya diterapkan bila tidak ada penyimpanan lokal yang lebih baru (anti race/lost-update).
   const saveState = useCallback((newDb: GreenhouseDatabase) => {
+    const revision = ++saveRevisionRef.current;
+    dbRef.current = newDb;
     setDb(newDb);
     try {
       localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(newDb));
@@ -499,7 +504,12 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         if (res.ok) {
           clearPendingUpload();
           const result = await res.json();
-          if (result?.data && Array.isArray(result.data.transactions)) {
+          if (
+            result?.data &&
+            Array.isArray(result.data.transactions) &&
+            revision === saveRevisionRef.current
+          ) {
+            dbRef.current = result.data;
             setDb(result.data);
             try {
               localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(result.data));
@@ -800,7 +810,7 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       createdAt: new Date().toISOString(),
     };
     const newDb: GreenhouseDatabase = {
-      ...db,
+      ...dbRef.current,
       tunnels: [...(db.tunnels || []), newTunnel],
     };
     saveState(newDb);
@@ -826,7 +836,7 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       }
       return t;
     });
-    saveState({ ...db, tunnels: updated });
+    saveState({ ...dbRef.current, tunnels: updated });
     addToast({ type: 'success', title: 'Data Greenhouse Diperbarui' });
     return true;
   };
@@ -835,7 +845,7 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     const target = (db.tunnels || []).find((t) => t.id === id);
     if (!target) return false;
     const updated = (db.tunnels || []).filter((t) => t.id !== id);
-    saveState({ ...db, tunnels: updated });
+    saveState({ ...dbRef.current, tunnels: updated });
     addToast({
       type: 'info',
       title: 'Greenhouse Dihapus',
@@ -853,8 +863,8 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       createdAt: new Date().toISOString(),
     };
     const newDb: GreenhouseDatabase = {
-      ...db,
-      transactions: [newTrx, ...db.transactions],
+      ...dbRef.current,
+      transactions: [newTrx, ...(dbRef.current.transactions || [])],
     };
     saveState(newDb);
     addToast({
@@ -877,14 +887,14 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   const updateTransaction = async (id: string, data: Partial<Transaction>): Promise<boolean> => {
     const updated = db.transactions.map((t) => (t.id === id ? { ...t, ...data } : t));
-    saveState({ ...db, transactions: updated });
+    saveState({ ...dbRef.current, transactions: updated });
     addToast({ type: 'success', title: 'Transaksi Diperbarui' });
     return true;
   };
 
   const deleteTransaction = async (id: string): Promise<boolean> => {
     const updated = db.transactions.filter((t) => t.id !== id);
-    saveState({ ...db, transactions: updated });
+    saveState({ ...dbRef.current, transactions: updated });
     addToast({ type: 'info', title: 'Transaksi Dihapus' });
     return true;
   };
@@ -895,7 +905,7 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       addToast({ type: 'error', title: 'Gagal', message: `ID Siklus ${cycle.id} sudah ada!` });
       return false;
     }
-    const newDb = { ...db, cycles: [...db.cycles, cycle] };
+    const newDb = { ...dbRef.current, cycles: [...(dbRef.current.cycles || []), cycle] };
     saveState(newDb);
     addToast({ type: 'success', title: 'Siklus Tanam Ditambahkan', message: cycle.name });
     return true;
@@ -903,14 +913,14 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   const updateCycle = async (id: string, cycle: Partial<CropCycle>): Promise<boolean> => {
     const updated = db.cycles.map((c) => (c.id === id ? { ...c, ...cycle } : c));
-    saveState({ ...db, cycles: updated });
+    saveState({ ...dbRef.current, cycles: updated });
     addToast({ type: 'success', title: 'Siklus Diperbarui' });
     return true;
   };
 
   const deleteCycle = async (id: string): Promise<boolean> => {
     const updated = db.cycles.filter((c) => c.id !== id);
-    saveState({ ...db, cycles: updated });
+    saveState({ ...dbRef.current, cycles: updated });
     addToast({ type: 'info', title: 'Siklus Dihapus' });
     return true;
   };
@@ -939,9 +949,9 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     };
 
     const newDb: GreenhouseDatabase = {
-      ...db,
-      harvests: [newHarvest, ...db.harvests],
-      transactions: [saleTrx, ...db.transactions],
+      ...dbRef.current,
+      harvests: [newHarvest, ...(dbRef.current.harvests || [])],
+      transactions: [saleTrx, ...(dbRef.current.transactions || [])],
     };
     saveState(newDb);
     addToast({
@@ -977,7 +987,7 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         return t;
       });
     }
-    saveState({ ...db, harvests: updated, transactions: updatedTrx });
+    saveState({ ...dbRef.current, harvests: updated, transactions: updatedTrx });
     addToast({ type: 'success', title: 'Data Panen Diperbarui' });
     return true;
   };
@@ -985,7 +995,7 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const deleteHarvest = async (id: string): Promise<boolean> => {
     const updated = db.harvests.filter((h) => h.id !== id);
     const updatedTrx = db.transactions.filter((t) => t.id !== `TRX-HRV-${id}`);
-    saveState({ ...db, harvests: updated, transactions: updatedTrx });
+    saveState({ ...dbRef.current, harvests: updated, transactions: updatedTrx });
     addToast({ type: 'info', title: 'Data Panen Dihapus' });
     return true;
   };
@@ -1014,9 +1024,9 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       createdAt: new Date().toISOString(),
     };
     const newDb: GreenhouseDatabase = {
-      ...db,
-      investments: [newInv, ...db.investments],
-      transactions: [invTrx, ...db.transactions],
+      ...dbRef.current,
+      investments: [newInv, ...(dbRef.current.investments || [])],
+      transactions: [invTrx, ...(dbRef.current.transactions || [])],
     };
     saveState(newDb);
     addToast({ type: 'success', title: 'Investasi Dicatat', message: newInv.itemName });
@@ -1047,7 +1057,7 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         return t;
       });
     }
-    saveState({ ...db, investments: updated, transactions: updatedTrx });
+    saveState({ ...dbRef.current, investments: updated, transactions: updatedTrx });
     addToast({ type: 'success', title: 'Data Investasi Diperbarui' });
     return true;
   };
@@ -1055,7 +1065,7 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const deleteInvestment = async (id: string): Promise<boolean> => {
     const updated = db.investments.filter((i) => i.id !== id);
     const updatedTrx = db.transactions.filter((t) => t.id !== `TRX-INV-${id}`);
-    saveState({ ...db, investments: updated, transactions: updatedTrx });
+    saveState({ ...dbRef.current, investments: updated, transactions: updatedTrx });
     addToast({ type: 'info', title: 'Data Investasi Dihapus' });
     return true;
   };
@@ -1064,7 +1074,7 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const addAsset = async (assetData: Omit<Asset, 'id'>): Promise<boolean> => {
     const id = `AST-${Date.now()}`;
     const newAsset: Asset = { ...assetData, id };
-    const newDb = { ...db, assets: [newAsset, ...db.assets] };
+    const newDb = { ...dbRef.current, assets: [newAsset, ...(dbRef.current.assets || [])] };
     saveState(newDb);
     addToast({ type: 'success', title: 'Aset Ditambahkan', message: newAsset.name });
     return true;
@@ -1072,14 +1082,14 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   const updateAsset = async (id: string, data: Partial<Asset>): Promise<boolean> => {
     const updated = db.assets.map((a) => (a.id === id ? { ...a, ...data } : a));
-    saveState({ ...db, assets: updated });
+    saveState({ ...dbRef.current, assets: updated });
     addToast({ type: 'success', title: 'Data Aset Diperbarui' });
     return true;
   };
 
   const deleteAsset = async (id: string): Promise<boolean> => {
     const updated = db.assets.filter((a) => a.id !== id);
-    saveState({ ...db, assets: updated });
+    saveState({ ...dbRef.current, assets: updated });
     addToast({ type: 'info', title: 'Aset Dihapus' });
     return true;
   };
@@ -1099,7 +1109,7 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       currentStock,
       lastUpdated: new Date().toISOString().slice(0, 10),
     };
-    const newDb = { ...db, inventory: [newItem, ...db.inventory] };
+    const newDb = { ...dbRef.current, inventory: [newItem, ...(dbRef.current.inventory || [])] };
     saveState(newDb);
     addToast({ type: 'success', title: 'Barang Stok Ditambahkan', message: newItem.name });
     return true;
@@ -1118,14 +1128,14 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       }
       return i;
     });
-    saveState({ ...db, inventory: updated });
+    saveState({ ...dbRef.current, inventory: updated });
     addToast({ type: 'success', title: 'Stok Barang Diperbarui' });
     return true;
   };
 
   const deleteInventoryItem = async (id: string): Promise<boolean> => {
     const updated = db.inventory.filter((i) => i.id !== id);
-    saveState({ ...db, inventory: updated });
+    saveState({ ...dbRef.current, inventory: updated });
     addToast({ type: 'info', title: 'Barang Stok Dihapus' });
     return true;
   };
@@ -1150,9 +1160,9 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       return item;
     });
     const newDb = {
-      ...db,
+      ...dbRef.current,
       inventory: updatedInv,
-      stockMutations: [mutation, ...db.stockMutations],
+      stockMutations: [mutation, ...(dbRef.current.stockMutations || [])],
     };
     saveState(newDb);
     addToast({
@@ -1178,7 +1188,7 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       remainingAmount,
       status,
     };
-    const newDb = { ...db, debts: [newDebt, ...db.debts] };
+    const newDb = { ...dbRef.current, debts: [newDebt, ...(dbRef.current.debts || [])] };
     saveState(newDb);
     addToast({
       type: 'success',
@@ -1200,14 +1210,14 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       }
       return d;
     });
-    saveState({ ...db, debts: updated });
+    saveState({ ...dbRef.current, debts: updated });
     addToast({ type: 'success', title: 'Data Hutang/Piutang Diperbarui' });
     return true;
   };
 
   const deleteDebt = async (id: string): Promise<boolean> => {
     const updated = db.debts.filter((d) => d.id !== id);
-    saveState({ ...db, debts: updated });
+    saveState({ ...dbRef.current, debts: updated });
     addToast({ type: 'info', title: 'Data Hutang/Piutang Dihapus' });
     return true;
   };
@@ -1246,7 +1256,7 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       notes: `Karyawan baru ${newEmp.name} (${newEmp.position} - ${newEmp.greenhouse}) berhasil didaftarkan.`,
     });
     const newDb: GreenhouseDatabase = {
-      ...db,
+      ...dbRef.current,
       employees: [newEmp, ...(db.employees || [])],
       employeeAuditLogs: [auditLog, ...(db.employeeAuditLogs || [])],
     };
@@ -1267,7 +1277,7 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       notes: `Memperbarui profil data karyawan ${prev?.name || id}`,
     });
     saveState({
-      ...db,
+      ...dbRef.current,
       employees: updated,
       employeeAuditLogs: [auditLog, ...(db.employeeAuditLogs || [])],
     });
@@ -1290,7 +1300,7 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       notes: `${emp?.name || id} ${soft ? 'dinonaktifkan (arsip)' : 'dihapus permanen'} dari sistem kebun`,
     });
     saveState({
-      ...db,
+      ...dbRef.current,
       employees: updated,
       employeeAuditLogs: [auditLog, ...(db.employeeAuditLogs || [])],
     });
@@ -1304,21 +1314,21 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       ...shiftData,
       id: `SHIFT-${Date.now().toString().slice(-4)}`,
     };
-    saveState({ ...db, workShifts: [...(db.workShifts || []), newShift] });
+    saveState({ ...dbRef.current, workShifts: [...(db.workShifts || []), newShift] });
     addToast({ type: 'success', title: 'Shift Kerja Ditambahkan', message: newShift.name });
     return true;
   };
 
   const updateWorkShift = async (id: string, shiftData: Partial<WorkShift>): Promise<boolean> => {
     const updated = (db.workShifts || []).map((s) => (s.id === id ? { ...s, ...shiftData } : s));
-    saveState({ ...db, workShifts: updated });
+    saveState({ ...dbRef.current, workShifts: updated });
     addToast({ type: 'success', title: 'Jadwal Shift Diperbarui' });
     return true;
   };
 
   const deleteWorkShift = async (id: string): Promise<boolean> => {
     const updated = (db.workShifts || []).filter((s) => s.id !== id);
-    saveState({ ...db, workShifts: updated });
+    saveState({ ...dbRef.current, workShifts: updated });
     addToast({ type: 'info', title: 'Shift Dihapus' });
     return true;
   };
@@ -1378,7 +1388,7 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       ? (db.attendances || []).map((a) => (a.id === existing.id ? newAttendance : a))
       : [newAttendance, ...(db.attendances || [])];
 
-    saveState({ ...db, attendances: nextAttendances });
+    saveState({ ...dbRef.current, attendances: nextAttendances });
     const msg = status === 'Terlambat'
       ? `Clock In berhasil (${nowTime}). Status: TERLAMBAT ${lateMinutes} menit.`
       : `Clock In berhasil (${nowTime}). Tepat waktu!`;
@@ -1428,7 +1438,7 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     };
 
     const nextAttendances = (db.attendances || []).map((a) => (a.id === existing.id ? updatedAttendance : a));
-    saveState({ ...db, attendances: nextAttendances });
+    saveState({ ...dbRef.current, attendances: nextAttendances });
     const msg = `Clock Out berhasil (${outTime}). Total jam kerja: ${workHours} jam${overtimeHours > 0 ? ` (Lembur: ${overtimeHours} jam)` : ''}.`;
     addToast({ type: 'success', title: `${emp.name} Clock Out`, message: msg });
     return { success: true, message: msg };
@@ -1448,7 +1458,7 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       notes: `Input manual absensi ${attData.employeeName} tanggal ${attData.date}: ${attData.status}`,
     });
     saveState({
-      ...db,
+      ...dbRef.current,
       attendances: [newAtt, ...filtered],
       employeeAuditLogs: [auditLog, ...(db.employeeAuditLogs || [])],
     });
@@ -1468,7 +1478,7 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       notes: reason ? `Alasan: ${reason}` : 'Koreksi data absensi',
     });
     saveState({
-      ...db,
+      ...dbRef.current,
       attendances: updated,
       employeeAuditLogs: [auditLog, ...(db.employeeAuditLogs || [])],
     });
@@ -1498,7 +1508,7 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         ];
       }
     });
-    saveState({ ...db, attendances });
+    saveState({ ...dbRef.current, attendances });
     return true;
   };
 
@@ -1512,7 +1522,7 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       notes: `Hapus absensi tanggal ${prev?.date}`,
     });
     saveState({
-      ...db,
+      ...dbRef.current,
       attendances: updated,
       employeeAuditLogs: [auditLog, ...(db.employeeAuditLogs || [])],
     });
@@ -1527,7 +1537,7 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       id: `LV-${Date.now().toString().slice(-4)}`,
       createdAt: new Date().toISOString(),
     };
-    saveState({ ...db, leaveRequests: [newLeave, ...(db.leaveRequests || [])] });
+    saveState({ ...dbRef.current, leaveRequests: [newLeave, ...(db.leaveRequests || [])] });
     addToast({ type: 'success', title: `Pengajuan ${newLeave.type} Dikirim`, message: `${newLeave.employeeName} (${newLeave.durationDays} hari)` });
     return true;
   };
@@ -1582,7 +1592,7 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
     const nextLeaves = (db.leaveRequests || []).map((l) => (l.id === id ? updatedLeave : l));
     saveState({
-      ...db,
+      ...dbRef.current,
       leaveRequests: nextLeaves,
       attendances: nextAttendances,
       employeeAuditLogs: [auditLog, ...(db.employeeAuditLogs || [])],
@@ -1597,7 +1607,7 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   const deleteLeaveRequest = async (id: string): Promise<boolean> => {
     const updated = (db.leaveRequests || []).filter((l) => l.id !== id);
-    saveState({ ...db, leaveRequests: updated });
+    saveState({ ...dbRef.current, leaveRequests: updated });
     addToast({ type: 'info', title: 'Pengajuan Dihapus' });
     return true;
   };
@@ -1609,7 +1619,7 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       id: `OT-${Date.now().toString().slice(-4)}`,
       createdAt: new Date().toISOString(),
     };
-    saveState({ ...db, overtimeRequests: [newOt, ...(db.overtimeRequests || [])] });
+    saveState({ ...dbRef.current, overtimeRequests: [newOt, ...(db.overtimeRequests || [])] });
     addToast({ type: 'success', title: 'Pengajuan Lembur Dicatat', message: `${newOt.employeeName} (${newOt.durationHours} jam)` });
     return true;
   };
@@ -1631,7 +1641,7 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     });
     const nextOts = (db.overtimeRequests || []).map((o) => (o.id === id ? updatedOt : o));
     saveState({
-      ...db,
+      ...dbRef.current,
       overtimeRequests: nextOts,
       employeeAuditLogs: [auditLog, ...(db.employeeAuditLogs || [])],
     });
@@ -1645,7 +1655,7 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
   const deleteOvertimeRequest = async (id: string): Promise<boolean> => {
     const updated = (db.overtimeRequests || []).filter((o) => o.id !== id);
-    saveState({ ...db, overtimeRequests: updated });
+    saveState({ ...dbRef.current, overtimeRequests: updated });
     addToast({ type: 'info', title: 'Data Lembur Dihapus' });
     return true;
   };
@@ -1799,7 +1809,7 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       }
     });
 
-    saveState({ ...db, payrolls: updatedPayrolls });
+    saveState({ ...dbRef.current, payrolls: updatedPayrolls });
     addToast({
       type: 'success',
       title: 'Payroll Berhasil Dihitung',
@@ -1835,7 +1845,7 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     merged.updatedAt = new Date().toISOString();
 
     const nextPayrolls = (db.payrolls || []).map((p) => (p.id === id ? merged : p));
-    saveState({ ...db, payrolls: nextPayrolls });
+    saveState({ ...dbRef.current, payrolls: nextPayrolls });
     addToast({ type: 'success', title: 'Payroll Diperbarui', message: `Gaji bersih: Rp${merged.netSalary.toLocaleString('id-ID')}` });
     return true;
   };
@@ -1858,7 +1868,7 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     });
     const nextPayrolls = (db.payrolls || []).map((p) => (p.id === id ? approvedRecord : p));
     saveState({
-      ...db,
+      ...dbRef.current,
       payrolls: nextPayrolls,
       employeeAuditLogs: [auditLog, ...(db.employeeAuditLogs || [])],
     });
@@ -1962,8 +1972,8 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     };
 
     const newDb: GreenhouseDatabase = {
-      ...db,
-      transactions: [payrollTransaction, ...db.transactions],
+      ...dbRef.current,
+      transactions: [payrollTransaction, ...(dbRef.current.transactions || [])],
       investments: constructionInvestment
         ? [constructionInvestment, ...(db.investments || [])]
         : db.investments,
@@ -1988,7 +1998,7 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       return false;
     }
     const updated = (db.payrolls || []).filter((p) => p.id !== id);
-    saveState({ ...db, payrolls: updated });
+    saveState({ ...dbRef.current, payrolls: updated });
     addToast({ type: 'info', title: 'Data Payroll Dihapus' });
     return true;
   };
@@ -2025,7 +2035,7 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       harvestBonusPerKg: 150,
     };
     const merged = { ...current, ...settings };
-    saveState({ ...db, payrollSettings: merged });
+    saveState({ ...dbRef.current, payrollSettings: merged });
     addToast({ type: 'success', title: 'Pengaturan Payroll Disimpan' });
     return true;
   };
