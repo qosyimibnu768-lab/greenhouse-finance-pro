@@ -47,6 +47,11 @@ export const HppPerTanamanAnalysis: React.FC = () => {
 
   // Engine: Accumulate Input, Operational, and Overhead costs divided by plant population
   const analysisData = useMemo(() => {
+    // Karyawan fase konstruksi dikecualikan dari HPP (upahnya capex, bukan biaya produksi)
+    const constructionEmployeeIds = new Set(
+      (db.employees || []).filter((e) => e.workArea === 'Konstruksi').map((e) => e.id)
+    );
+
     const cycleList = db.cycles.map((c) => {
       let bibit = 0;
       let nutrisi = 0;
@@ -118,6 +123,7 @@ export const HppPerTanamanAnalysis: React.FC = () => {
         const cycleStart = new Date(c.startDate);
         const cycleEnd = new Date(c.actualHarvestDate || c.harvestTargetDate || Date.now());
         const matchingPayrolls = (db.payrolls || []).filter((p) => {
+          if (constructionEmployeeIds.has(p.employeeId)) return false;
           const payDate = new Date(p.periodYear, p.periodMonth - 1, 15);
           return payDate >= cycleStart && payDate <= cycleEnd;
         });
@@ -226,7 +232,7 @@ export const HppPerTanamanAnalysis: React.FC = () => {
     };
 
     return { cycleList, aggregateAll };
-  }, [db.cycles, db.transactions, db.harvests, db.payrolls, db.payrollSettings]);
+  }, [db.cycles, db.transactions, db.harvests, db.payrolls, db.employees, db.payrollSettings]);
 
   // Selected Active Cycle Data
   const activeCycle = useMemo(() => {

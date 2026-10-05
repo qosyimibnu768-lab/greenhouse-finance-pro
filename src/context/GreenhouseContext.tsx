@@ -1855,21 +1855,60 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
     const payDate = paymentData.paymentDate || new Date().toISOString().slice(0, 10);
     const ref = paymentData.paymentReference || `PAY-${payroll.employeeId}-${Date.now().toString().slice(-4)}`;
-    const trxId = `TRX-PAY-${Date.now().toString().slice(-6)}`;
 
-    const payrollTransaction: Transaction = {
-      id: trxId,
-      date: payDate,
-      type: 'pengeluaran',
-      expenseGroup: 'operasional',
-      category: 'Gaji Karyawan / Payroll',
-      subcategory: `Gaji ${payroll.employeeName}`,
-      amount: payroll.netSalary,
-      paymentMethod: paymentData.paymentMethod === 'Cash' ? 'Tunai / Cash' : 'Transfer Bank',
-      tunnel: payroll.greenhouse || 'Semua Greenhouse',
-      note: `Payroll ${payroll.periodLabel} - ${payroll.employeeName} (${payroll.position}) [Ref: ${ref}]`,
-      createdAt: new Date().toISOString(),
-    };
+    // Karyawan fase konstruksi: upah dicatat sebagai Investasi (Pembangunan/capex),
+    // bukan biaya operasional, agar tidak masuk HPP panen.
+    const employee = (db.employees || []).find((e) => e.id === payroll.employeeId);
+    const isConstructionWorker = employee?.workArea === 'Konstruksi';
+
+    let constructionInvestment: Investment | null = null;
+    let trxId = `TRX-PAY-${Date.now().toString().slice(-6)}`;
+
+    if (isConstructionWorker) {
+      const invId = `INV-${Date.now()}`;
+      constructionInvestment = {
+        id: invId,
+        date: payDate,
+        category: 'Pembangunan',
+        itemName: `Upah Konstruksi: ${payroll.employeeName}`,
+        quantity: 1,
+        unit: 'orang',
+        unitPrice: payroll.netSalary,
+        totalAmount: payroll.netSalary,
+        supplier: '-',
+        tunnel: payroll.greenhouse || 'Semua Greenhouse',
+        notes: `Payroll ${payroll.periodLabel} (${payroll.position}) - Ref: ${ref}`,
+      };
+      trxId = `TRX-INV-${invId}`;
+    }
+
+    const payrollTransaction: Transaction = isConstructionWorker
+      ? {
+          id: trxId,
+          date: payDate,
+          type: 'pengeluaran',
+          expenseGroup: 'investasi',
+          category: 'Pembangunan',
+          subcategory: `Upah Konstruksi: ${payroll.employeeName}`,
+          amount: payroll.netSalary,
+          paymentMethod: paymentData.paymentMethod === 'Cash' ? 'Tunai / Cash' : 'Transfer Bank',
+          tunnel: payroll.greenhouse || 'Semua Greenhouse',
+          note: `Investasi: Upah Konstruksi ${payroll.employeeName} (${payroll.position}) - Payroll ${payroll.periodLabel} [Ref: ${ref}]`,
+          createdAt: new Date().toISOString(),
+        }
+      : {
+          id: trxId,
+          date: payDate,
+          type: 'pengeluaran',
+          expenseGroup: 'operasional',
+          category: 'Gaji Karyawan / Payroll',
+          subcategory: `Gaji ${payroll.employeeName}`,
+          amount: payroll.netSalary,
+          paymentMethod: paymentData.paymentMethod === 'Cash' ? 'Tunai / Cash' : 'Transfer Bank',
+          tunnel: payroll.greenhouse || 'Semua Greenhouse',
+          note: `Payroll ${payroll.periodLabel} - ${payroll.employeeName} (${payroll.position}) [Ref: ${ref}]`,
+          createdAt: new Date().toISOString(),
+        };
 
     const updatedPayroll: PayrollRecord = {
       ...payroll,
@@ -1888,12 +1927,17 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       action: 'Pembayaran Gaji Karyawan',
       adminName: currentUser?.name || 'Admin',
       employeeName: payroll.employeeName,
-      notes: `Gaji ${payroll.periodLabel} senilai Rp${payroll.netSalary.toLocaleString('id-ID')} dibayar via ${paymentData.paymentMethod} (Ref: ${ref})`,
+      notes: isConstructionWorker
+        ? `Upah konstruksi ${payroll.periodLabel} senilai Rp${payroll.netSalary.toLocaleString('id-ID')} dibayar via ${paymentData.paymentMethod} dan dicatat sebagai Investasi/Pembangunan (Ref: ${ref})`
+        : `Gaji ${payroll.periodLabel} senilai Rp${payroll.netSalary.toLocaleString('id-ID')} dibayar via ${paymentData.paymentMethod} (Ref: ${ref})`,
     };
 
     const newDb: GreenhouseDatabase = {
       ...db,
       transactions: [payrollTransaction, ...db.transactions],
+      investments: constructionInvestment
+        ? [constructionInvestment, ...(db.investments || [])]
+        : db.investments,
       payrolls: (db.payrolls || []).map((p) => (p.id === id ? updatedPayroll : p)),
       employeeAuditLogs: [auditLog, ...(db.employeeAuditLogs || [])],
     };
@@ -1901,7 +1945,9 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     addToast({
       type: 'success',
       title: 'Gaji Berhasil Dibayarkan',
-      message: `Gaji ${payroll.employeeName} (${payroll.periodLabel}) sebesar Rp${payroll.netSalary.toLocaleString('id-ID')} telah tercatat di pengeluaran operasional.`,
+      message: isConstructionWorker
+        ? `Upah ${payroll.employeeName} (${payroll.periodLabel}) sebesar Rp${payroll.netSalary.toLocaleString('id-ID')} tercatat sebagai Investasi Pembangunan (capex), bukan biaya operasional/HPP.`
+        : `Gaji ${payroll.employeeName} (${payroll.periodLabel}) sebesar Rp${payroll.netSalary.toLocaleString('id-ID')} telah tercatat di pengeluaran operasional.`,
     });
     return true;
   };

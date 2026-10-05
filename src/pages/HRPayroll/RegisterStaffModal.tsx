@@ -338,6 +338,7 @@ export const RegisterStaffModal: React.FC<RegisterStaffModalProps> = ({
                   onChange={(e) => setFormData({ ...formData, workArea: e.target.value as WorkArea })}
                   className="w-full px-3 py-2 rounded-xl border border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none"
                 >
+                  <option value="Konstruksi">Konstruksi / Pembangunan (fase bangun)</option>
                   <option value="Nutrisi">Nutrisi DFT</option>
                   <option value="Budidaya">Budidaya & Pangkas</option>
                   <option value="Penyiraman">Penyiraman & Otomasi</option>
@@ -348,6 +349,11 @@ export const RegisterStaffModal: React.FC<RegisterStaffModalProps> = ({
                   <option value="Administrasi">Administrasi</option>
                   <option value="Security">Security & Ronda</option>
                 </select>
+                {formData.workArea === 'Konstruksi' && (
+                  <p className="text-[10px] text-amber-700 mt-1">
+                    Karyawan konstruksi: pembayaran gajinya otomatis dicatat sebagai Investasi (Pembangunan/capex), tidak masuk biaya operasional & HPP panen.
+                  </p>
+                )}
               </div>
 
               <div>

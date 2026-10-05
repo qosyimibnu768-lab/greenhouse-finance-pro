@@ -233,6 +233,7 @@ export interface GreenhouseDatabase {
 export type EmploymentStatus = 'Tetap' | 'Kontrak' | 'Harian' | 'Freelance';
 export type SalaryPaymentType = 'Bulanan' | 'Harian' | 'Per Jam';
 export type WorkArea =
+  | 'Konstruksi'
   | 'Budidaya'
   | 'Nutrisi'
   | 'Penyiraman'

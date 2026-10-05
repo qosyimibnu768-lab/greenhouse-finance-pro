@@ -113,10 +113,17 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
   const currentYear = new Date().getFullYear();
 
   const currentPayrolls = useMemo(() => {
-    return (db.payrolls || []).filter(
-      (p) => p.periodMonth === currentMonth && p.periodYear === currentYear
+    // Karyawan konstruksi dikecualikan: upahnya tercatat sebagai Investasi (capex), bukan beban payroll operasional
+    const constructionEmployeeIds = new Set(
+      (db.employees || []).filter((e) => e.workArea === 'Konstruksi').map((e) => e.id)
     );
-  }, [db.payrolls, currentMonth, currentYear]);
+    return (db.payrolls || []).filter(
+      (p) =>
+        p.periodMonth === currentMonth &&
+        p.periodYear === currentYear &&
+        !constructionEmployeeIds.has(p.employeeId)
+    );
+  }, [db.payrolls, db.employees, currentMonth, currentYear]);
 
   const totalBebanPayrollBulanIni = useMemo(() => {
     return currentPayrolls.reduce((sum, p) => sum + (Number(p.netSalary) || 0), 0);

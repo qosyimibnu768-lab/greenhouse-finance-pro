@@ -159,6 +159,11 @@ export const ReportsPage: React.FC = () => {
     let cumulativeCapex = 0;
     let cumulativeNetProfit = 0;
 
+    // ID karyawan fase konstruksi — upahnya adalah capex, bukan biaya tenaga kerja/HPP
+    const constructionEmployeeIds = new Set(
+      (db.employees || []).filter((e) => e.workArea === 'Konstruksi').map((e) => e.id)
+    );
+
     return sortedMonthKeys.map((ym) => {
       const [yearStr, monthStr] = ym.split('-');
       const year = Number(yearStr);
@@ -238,7 +243,15 @@ export const ReportsPage: React.FC = () => {
             totalInvestasi += amt;
             const sub = (t.subcategory || t.category || '').toLowerCase();
             const note = (t.note || '').toLowerCase();
-            if (sub.includes('bambu') || sub.includes('pondasi') || sub.includes('tukang') || note.includes('rangka')) {
+            if (
+              sub.includes('bambu') ||
+              sub.includes('pondasi') ||
+              sub.includes('tukang') ||
+              sub.includes('kuli') ||
+              sub.includes('upah') ||
+              sub.includes('konstruksi') ||
+              note.includes('rangka')
+            ) {
               investasiStrukturBambu += amt;
             } else if (sub.includes('plastik') || sub.includes('net') || note.includes('uv')) {
               investasiPlastikNet += amt;
@@ -285,8 +298,12 @@ export const ReportsPage: React.FC = () => {
       });
 
       // Synchronize with HR Payroll records if transactions are not explicitly tagged
+      // (karyawan konstruksi dikecualikan: upahnya dicatat sebagai capex/Investasi, bukan biaya tenaga kerja)
       const monthPayrollRecords = (db.payrolls || []).filter(
-        (p) => p.periodYear === year && p.periodMonth === monthNum
+        (p) =>
+          p.periodYear === year &&
+          p.periodMonth === monthNum &&
+          !constructionEmployeeIds.has(p.employeeId)
       );
       if (totalGajiStaf === 0 && monthPayrollRecords.length > 0) {
         totalGajiStaf = monthPayrollRecords.reduce((s, p) => s + (Number(p.netSalary) || 0), 0);
@@ -397,7 +414,7 @@ export const ReportsPage: React.FC = () => {
         cumulativeNetProfit,
       };
     });
-  }, [db.transactions, db.harvests, db.payrolls, selectedTunnelFilter, capexAccountingMethod, metrics.totalInvestasi]);
+  }, [db.transactions, db.harvests, db.payrolls, db.employees, selectedTunnelFilter, capexAccountingMethod, metrics.totalInvestasi]);
 
   // Estimasi Biaya Tetap per Siklus dari data aktual:
   // (rata-rata gaji tetap + tunjangan + listrik/air + operasional lainnya per bulan yang ada datanya)
