@@ -14,7 +14,7 @@ import {
 } from 'lucide-react';
 
 export const DebtsReceivablesPage: React.FC = () => {
-  const { db, metrics, addDebt, updateDebt, deleteDebt } = useGreenhouse();
+  const { db, metrics, addDebt, updateDebt, deleteDebt, payDebt } = useGreenhouse();
   const [activeTab, setActiveTab] = useState<'hutang' | 'piutang'>('hutang');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [isPayModalOpen, setIsPayModalOpen] = useState(false);
@@ -34,6 +34,11 @@ export const DebtsReceivablesPage: React.FC = () => {
   // Payment form state
   const [additionalPayment, setAdditionalPayment] = useState('');
   const [payError, setPayError] = useState<string | null>(null);
+  const [paymentNature, setPaymentNature] = useState<'balance_only' | 'operasional' | 'investasi' | 'revenue'>(
+    'balance_only'
+  );
+  // Hutang/pinjaman yang uangnya masuk ke kas (mis. pinjaman modal)
+  const [receivedToCash, setReceivedToCash] = useState(false);
 
   const openAddModal = (defaultType: 'hutang' | 'piutang' = activeTab) => {
     setEditingDebt(null);
@@ -46,6 +51,7 @@ export const DebtsReceivablesPage: React.FC = () => {
     setAmount('');
     setPaidAmount('0');
     setDescription('');
+    setReceivedToCash(false);
     setFormError(null);
     setIsModalOpen(true);
   };
@@ -67,6 +73,7 @@ export const DebtsReceivablesPage: React.FC = () => {
     setSelectedForPayment(d);
     setAdditionalPayment('');
     setPayError(null);
+    setPaymentNature(d.type === 'piutang' ? 'balance_only' : 'balance_only');
     setIsPayModalOpen(true);
   };
 
@@ -92,6 +99,7 @@ export const DebtsReceivablesPage: React.FC = () => {
       amount: amt,
       paidAmount: paid,
       description: description.trim() || undefined,
+      receivedToCash: type === 'hutang' ? receivedToCash : false,
     };
 
     if (editingDebt) {
@@ -116,10 +124,7 @@ export const DebtsReceivablesPage: React.FC = () => {
       return;
     }
 
-    const newPaid = (selectedForPayment.paidAmount || 0) + addPay;
-    await updateDebt(selectedForPayment.id, {
-      paidAmount: newPaid,
-    });
+    await payDebt(selectedForPayment.id, addPay, paymentNature);
     setIsPayModalOpen(false);
   };
 
@@ -416,6 +421,23 @@ export const DebtsReceivablesPage: React.FC = () => {
                   className="w-full p-2 rounded-lg border border-slate-300"
                 />
               </div>
+              {type === 'hutang' && !editingDebt && (
+                <label className="flex items-start gap-2 p-3 rounded-xl bg-blue-50 border border-blue-200 text-blue-900 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={receivedToCash}
+                    onChange={(e) => setReceivedToCash(e.target.checked)}
+                    className="mt-0.5 accent-blue-600"
+                  />
+                  <span>
+                    <b>Uang pinjaman ini masuk ke kas (menambah saldo)</b>
+                    <span className="block text-[10px] text-blue-700 mt-0.5">
+                      Centang untuk <b>pinjaman modal</b> yang dananya Anda terima — sistem otomatis mencatat pemasukan
+                      "Pinjaman" ke kas. Biarkan kosong untuk hutang pembelian barang (tempo).
+                    </span>
+                  </span>
+                </label>
+              )}
               <div className="pt-2 flex justify-end gap-2 border-t border-slate-100">
                 <button
                   type="button"
@@ -479,6 +501,34 @@ export const DebtsReceivablesPage: React.FC = () => {
                   placeholder={`Maks ${selectedForPayment.remainingAmount}`}
                   className="w-full p-2.5 rounded-lg border border-slate-300 font-black text-base font-mono"
                 />
+              </div>
+              <div>
+                <label className="font-semibold text-slate-700 block mb-1">Perlakuan Pembayaran</label>
+                {selectedForPayment.type === 'hutang' ? (
+                  <select
+                    value={paymentNature}
+                    onChange={(e) => setPaymentNature(e.target.value as any)}
+                    className="w-full p-2.5 rounded-lg border border-slate-300"
+                  >
+                    <option value="balance_only">Cicilan hutang — sudah tercatat (hanya mengurangi kas)</option>
+                    <option value="operasional">Pengeluaran baru — biaya operasional (masuk HPP)</option>
+                    <option value="investasi">Pengeluaran baru — investasi (capex)</option>
+                  </select>
+                ) : (
+                  <select
+                    value={paymentNature}
+                    onChange={(e) => setPaymentNature(e.target.value as any)}
+                    className="w-full p-2.5 rounded-lg border border-slate-300"
+                  >
+                    <option value="balance_only">Penerimaan piutang — sudah tercatat (hanya menambah kas)</option>
+                    <option value="revenue">Penjualan baru — hitung sebagai omzet</option>
+                  </select>
+                )}
+                <p className="text-[10px] text-slate-500 mt-1">
+                  {selectedForPayment.type === 'hutang'
+                    ? 'Pilih "sudah tercatat" bila pembeliannya pernah dicatat (metode Hutang) agar biaya tidak dobel. Pembayaran otomatis membuat transaksi kas keluar.'
+                    : 'Pilih "sudah tercatat" bila penjualannya pernah dicatat agar omzet tidak dobel. Penerimaan otomatis membuat transaksi kas masuk.'}
+                </p>
               </div>
               <div className="pt-2 flex justify-end gap-2 border-t border-slate-100">
                 <button

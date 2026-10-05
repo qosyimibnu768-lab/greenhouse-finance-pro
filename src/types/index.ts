@@ -1,5 +1,5 @@
 export type TransactionType = 'pemasukan' | 'pengeluaran';
-export type ExpenseGroup = 'operasional' | 'investasi';
+export type ExpenseGroup = 'operasional' | 'investasi' | 'pembayaran-hutang';
 
 export interface Tunnel {
   id: string; // e.g. 'T1', 'T2', 'TUNNEL-xxx'
@@ -160,6 +160,10 @@ export interface DebtReceivable {
   status: 'Belum lunas' | 'Sebagian' | 'Lunas';
   description?: string;
   relatedTransactionId?: string;
+  /** Hutang/pinjaman yang uangnya diterima masuk ke kas (menambah saldo) */
+  receivedToCash?: boolean;
+  /** ID transaksi kas penerimaan pinjaman */
+  receivedTransactionId?: string;
 }
 
 export interface FinancialMetrics {

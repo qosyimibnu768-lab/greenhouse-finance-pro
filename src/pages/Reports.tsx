@@ -260,7 +260,7 @@ export const ReportsPage: React.FC = () => {
             } else {
               investasiOtomasiSensor += amt;
             }
-          } else {
+          } else if (t.expenseGroup !== 'pembayaran-hutang') {
             // Check if labor / salary
             const cat = (t.category || '').toLowerCase();
             const note = (t.note || '').toLowerCase();

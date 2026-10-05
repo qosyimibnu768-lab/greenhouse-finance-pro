@@ -149,6 +149,11 @@ interface GreenhouseContextType {
   addDebt: (debt: Omit<DebtReceivable, 'id' | 'remainingAmount' | 'status'>) => Promise<boolean>;
   updateDebt: (id: string, debt: Partial<DebtReceivable>) => Promise<boolean>;
   deleteDebt: (id: string) => Promise<boolean>;
+  payDebt: (
+    id: string,
+    paymentAmount: number,
+    nature?: 'balance_only' | 'operasional' | 'investasi' | 'revenue'
+  ) => Promise<boolean>;
   // HR, Absensi & Payroll Module
   employees: Employee[];
   workShifts: WorkShift[];
@@ -1180,6 +1185,28 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     const paidAmount = Number(debtData.paidAmount) || 0;
     const remainingAmount = Math.max(0, amount - paidAmount);
     const status = remainingAmount === 0 ? 'Lunas' : paidAmount > 0 ? 'Sebagian' : 'Belum lunas';
+
+    // Hutang/pinjaman yang uangnya masuk ke kas (mis. pinjaman modal):
+    // otomatis membuat transaksi pemasukan "Pinjaman" agar saldo kas bertambah.
+    const isCashLoan = debtData.type === 'hutang' && !!debtData.receivedToCash && amount > 0;
+    const loanTrxId = isCashLoan ? `TRX-LOAN-${Date.now().toString().slice(-6)}` : undefined;
+    const loanTrx: Transaction | null = isCashLoan
+      ? {
+          id: loanTrxId as string,
+          date: debtData.date,
+          type: 'pemasukan',
+          category: 'Pinjaman',
+          subcategory: debtData.counterparty,
+          amount,
+          paymentMethod: 'Transfer Bank',
+          tunnel: 'Umum / Fasilitas',
+          note: `Penerimaan pinjaman dari ${debtData.counterparty}${
+            debtData.description ? ` — ${debtData.description}` : ''
+          }`,
+          createdAt: new Date().toISOString(),
+        }
+      : null;
+
     const newDebt: DebtReceivable = {
       ...debtData,
       id,
@@ -1187,13 +1214,20 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       paidAmount,
       remainingAmount,
       status,
+      receivedTransactionId: loanTrxId,
     };
-    const newDb = { ...dbRef.current, debts: [newDebt, ...(dbRef.current.debts || [])] };
+    const newDb = {
+      ...dbRef.current,
+      debts: [newDebt, ...(dbRef.current.debts || [])],
+      transactions: loanTrx
+        ? [loanTrx, ...(dbRef.current.transactions || [])]
+        : dbRef.current.transactions,
+    };
     saveState(newDb);
     addToast({
       type: 'success',
       title: `${newDebt.type === 'hutang' ? 'Hutang' : 'Piutang'} Dicatat`,
-      message: `${newDebt.counterparty}`,
+      message: isCashLoan ? `${newDebt.counterparty} • kas bertambah Rp${amount.toLocaleString('id-ID')}` : `${newDebt.counterparty}`,
     });
     return true;
   };
@@ -1219,6 +1253,85 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     const updated = db.debts.filter((d) => d.id !== id);
     saveState({ ...dbRef.current, debts: updated });
     addToast({ type: 'info', title: 'Data Hutang/Piutang Dihapus' });
+    return true;
+  };
+
+  /**
+   * Pembayaran hutang / penerimaan piutang dengan TRANSAKSI KAS OTOMATIS:
+   * - Bayar hutang   → kas keluar (transaksi pengeluaran)
+   * - Terima piutang → kas masuk  (transaksi pemasukan)
+   * `nature` menentukan perlakuan laporan:
+   * - 'balance_only' (default): sudah tercatat sebelumnya → hanya mutasi kas (tidak menambah beban/omzet)
+   * - 'operasional' / 'investasi': pengeluaran baru → masuk opex/capex
+   * - 'revenue': penjualan baru → masuk omzet
+   */
+  const payDebt = async (
+    id: string,
+    paymentAmount: number,
+    nature: 'balance_only' | 'operasional' | 'investasi' | 'revenue' = 'balance_only'
+  ): Promise<boolean> => {
+    const debt = (dbRef.current.debts || []).find((d) => d.id === id);
+    if (!debt) {
+      addToast({ type: 'error', title: 'Data Hutang/Piutang Tidak Ditemukan' });
+      return false;
+    }
+    const amount = Math.max(0, Number(paymentAmount) || 0);
+    if (amount <= 0) return false;
+
+    const isHutang = debt.type === 'hutang';
+    const today = new Date().toISOString().slice(0, 10);
+    const ts = Date.now().toString().slice(-6);
+
+    const trx: Transaction = isHutang
+      ? {
+          id: `TRX-DEBT-${ts}`,
+          date: today,
+          type: 'pengeluaran',
+          expenseGroup:
+            nature === 'operasional' ? 'operasional' : nature === 'investasi' ? 'investasi' : 'pembayaran-hutang',
+          category: nature === 'balance_only' ? 'Pembayaran Hutang' : 'Pembayaran Hutang (Beban Baru)',
+          subcategory: debt.counterparty,
+          amount,
+          paymentMethod: 'Transfer Bank',
+          tunnel: 'Umum / Fasilitas',
+          note: `Cicilan hutang ke ${debt.counterparty}${debt.description ? ` — ${debt.description}` : ''}`,
+          createdAt: new Date().toISOString(),
+        }
+      : {
+          id: `TRX-RCV-${ts}`,
+          date: today,
+          type: 'pemasukan',
+          category: nature === 'revenue' ? 'Penjualan melon' : 'Pendapatan lainnya',
+          subcategory: debt.counterparty,
+          amount,
+          paymentMethod: 'Transfer Bank',
+          tunnel: 'Umum / Fasilitas',
+          note: `Penerimaan piutang dari ${debt.counterparty}${debt.description ? ` — ${debt.description}` : ''}`,
+          createdAt: new Date().toISOString(),
+        };
+
+    const updatedDebts = (dbRef.current.debts || []).map((d) => {
+      if (d.id !== id) return d;
+      const newPaid = (Number(d.paidAmount) || 0) + amount;
+      const remaining = Math.max(0, (Number(d.amount) || 0) - newPaid);
+      return {
+        ...d,
+        paidAmount: newPaid,
+        remainingAmount: remaining,
+        status: (remaining === 0 ? 'Lunas' : 'Sebagian') as DebtReceivable['status'],
+      };
+    });
+
+    saveState({
+      ...dbRef.current,
+      debts: updatedDebts,
+      transactions: [trx, ...(dbRef.current.transactions || [])],
+    });
+    addToast({
+      type: 'success',
+      title: isHutang ? 'Pembayaran Hutang Dicatat' : 'Penerimaan Piutang Dicatat',
+      message: `${debt.counterparty} • kas ${isHutang ? 'keluar' : 'masuk'} Rp${amount.toLocaleString('id-ID')}`,
+    });
     return true;
   };
 
@@ -2208,6 +2321,7 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         addDebt,
         updateDebt,
         deleteDebt,
+        payDebt,
         // HR, Absensi & Payroll Module
         employees: db.employees || [],
         workShifts: db.workShifts || [],
