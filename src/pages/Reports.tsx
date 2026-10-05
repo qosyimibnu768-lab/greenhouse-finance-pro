@@ -92,6 +92,7 @@ export const ReportsPage: React.FC = () => {
   const [bepKgPerCycle, setBepKgPerCycle] = useState<string>('2000');
   const [bepManual, setBepManual] = useState({
     investment: false,
+    fixed: false,
     variable: false,
     price: false,
     kgCycle: false,
@@ -397,6 +398,40 @@ export const ReportsPage: React.FC = () => {
       };
     });
   }, [db.transactions, db.harvests, db.payrolls, selectedTunnelFilter, capexAccountingMethod, metrics.totalInvestasi]);
+
+  // Estimasi Biaya Tetap per Siklus dari data aktual:
+  // (rata-rata gaji tetap + tunjangan + listrik/air + operasional lainnya per bulan yang ada datanya)
+  // dikalikan rata-rata durasi siklus tanam (fallback 70 hari / ~2,33 bulan bila belum ada data siklus).
+  const actualFixedCostPerCycle = useMemo(() => {
+    const monthsWithData = monthlyComprehensivePnL.filter(
+      (m) => m.totalBiayaOperasionalBahan > 0 || m.totalGajiStaf > 0
+    );
+    if (monthsWithData.length === 0) return 0;
+    const fixedPerMonth =
+      monthsWithData.reduce(
+        (s, m) => s + m.gajiPokok + m.tunjanganTransport + m.utilitasListrikAir + m.operasionalLainnya,
+        0
+      ) / monthsWithData.length;
+    if (fixedPerMonth <= 0) return 0;
+    const cycleDays =
+      db.cycles.length > 0
+        ? db.cycles.reduce((s, c) => {
+            const start = new Date(c.plantingDate || c.startDate || '').getTime();
+            const end = new Date(c.harvestTargetDate || c.actualHarvestDate || '').getTime();
+            const days = end > start ? (end - start) / 86400000 : 0;
+            return s + (days > 0 ? days : 70);
+          }, 0) / db.cycles.length
+        : 70;
+    const monthsPerCycle = Math.max(0.5, cycleDays / 30);
+    return Math.round(fixedPerMonth * monthsPerCycle);
+  }, [monthlyComprehensivePnL, db.cycles]);
+
+  // Sinkronkan biaya tetap per siklus dari data aktual (selama belum diubah manual)
+  useEffect(() => {
+    if (!bepManual.fixed && actualFixedCostPerCycle > 0) {
+      setBepFixedCostPerCycle(String(actualFixedCostPerCycle));
+    }
+  }, [actualFixedCostPerCycle, bepManual.fixed]);
 
   // Available Months for Dropdown
   const availableMonthsList = useMemo(() => {
@@ -1820,9 +1855,21 @@ export const ReportsPage: React.FC = () => {
                 <input
                   type="number"
                   value={bepFixedCostPerCycle}
-                  onChange={(e) => setBepFixedCostPerCycle(e.target.value)}
+                  onChange={(e) => {
+                    setBepManual((m) => ({ ...m, fixed: true }));
+                    setBepFixedCostPerCycle(e.target.value);
+                  }}
                   className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 outline-none font-mono"
                 />
+                {bepManual.fixed ? null : actualFixedCostPerCycle > 0 ? (
+                  <span className="text-[10px] text-emerald-700 mt-1 block">
+                    Otomatis dari data operasional (gaji tetap + listrik/air + lainnya × durasi siklus)
+                  </span>
+                ) : (
+                  <span className="text-[10px] text-slate-400 mt-1 block">
+                    Estimasi default — terisi otomatis setelah ada biaya operasional tercatat
+                  </span>
+                )}
               </div>
               <div>
                 <label className="font-semibold text-slate-700 block mb-1">Biaya Variabel / Kg (Rp)</label>
