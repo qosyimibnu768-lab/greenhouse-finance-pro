@@ -1,13 +1,17 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { useGreenhouse } from '../context/GreenhouseContext';
 import { Asset } from '../types';
 import { formatCurrency, formatDate } from '../utils/formatters';
+import { calcAssetDepreciation, formatMonths } from '../utils/depreciation';
 import {
   Layers,
   Plus,
   Trash2,
   Edit2,
   X,
+  TrendingDown,
+  Wallet,
+  CalendarClock,
 } from 'lucide-react';
 
 // Kategori aset disamakan dengan fitur Investasi Greenhouse
@@ -46,6 +50,24 @@ export const AssetsPage: React.FC = () => {
   const [location, setLocation] = useState('Greenhouse 1 & 2');
   const [notes, setNotes] = useState('');
   const [error, setError] = useState<string | null>(null);
+
+  // ===== Penyusutan otomatis (garis lurus) =====
+  const depreciationList = useMemo(
+    () => (db.assets || []).map((a) => ({ asset: a, dep: calcAssetDepreciation(a) })),
+    [db.assets]
+  );
+
+  const depTotals = useMemo(() => {
+    return depreciationList.reduce(
+      (acc, { dep }) => ({
+        acquisition: acc.acquisition + dep.acquisitionValue,
+        accumulated: acc.accumulated + dep.accumulatedDepreciation,
+        bookValue: acc.bookValue + dep.bookValue,
+        monthly: acc.monthly + (dep.isFullyDepreciated ? 0 : dep.monthlyDepreciation),
+      }),
+      { acquisition: 0, accumulated: 0, bookValue: 0, monthly: 0 }
+    );
+  }, [depreciationList]);
 
   const openAddModal = () => {
     setEditingAsset(null);
@@ -137,6 +159,50 @@ export const AssetsPage: React.FC = () => {
         </button>
       </div>
 
+      {/* Ringkasan Penyusutan Otomatis */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Nilai Perolehan</span>
+            <Layers className="w-4 h-4 text-slate-500" />
+          </div>
+          <div className="text-lg sm:text-2xl font-black font-mono text-slate-900">
+            {formatCurrency(depTotals.acquisition)}
+          </div>
+          <p className="text-[11px] text-slate-500 mt-1">Harga beli seluruh aset</p>
+        </div>
+        <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Akumulasi Penyusutan</span>
+            <TrendingDown className="w-4 h-4 text-amber-600" />
+          </div>
+          <div className="text-lg sm:text-2xl font-black font-mono text-amber-700">
+            {formatCurrency(depTotals.accumulated)}
+          </div>
+          <p className="text-[11px] text-slate-500 mt-1">Penyusutan berjalan (garis lurus)</p>
+        </div>
+        <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Nilai Buku Sekarang</span>
+            <Wallet className="w-4 h-4 text-emerald-600" />
+          </div>
+          <div className="text-lg sm:text-2xl font-black font-mono text-emerald-700">
+            {formatCurrency(depTotals.bookValue)}
+          </div>
+          <p className="text-[11px] text-slate-500 mt-1">Nilai perolehan − akumulasi</p>
+        </div>
+        <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs">
+          <div className="flex items-center justify-between mb-2">
+            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Beban Penyusutan / Bulan</span>
+            <CalendarClock className="w-4 h-4 text-blue-600" />
+          </div>
+          <div className="text-lg sm:text-2xl font-black font-mono text-slate-900">
+            {formatCurrency(depTotals.monthly)}
+          </div>
+          <p className="text-[11px] text-slate-500 mt-1">Aset yang masih aktif disusutkan</p>
+        </div>
+      </div>
+
       {/* Asset Table */}
       <div className="bg-white rounded-2xl border border-slate-200 shadow-xs overflow-hidden">
         <div className="overflow-x-auto">
@@ -149,6 +215,10 @@ export const AssetsPage: React.FC = () => {
                 <th className="py-3.5 px-4 text-center">Jumlah</th>
                 <th className="py-3.5 px-4 text-right">Harga Perolehan</th>
                 <th className="py-3.5 px-4 text-right">Total Nilai</th>
+                <th className="py-3.5 px-4">Umur / Masa Manfaat</th>
+                <th className="py-3.5 px-4 text-right">Penyusutan/Bln</th>
+                <th className="py-3.5 px-4 text-right">Akumulasi</th>
+                <th className="py-3.5 px-4 text-right">Nilai Buku</th>
                 <th className="py-3.5 px-4 text-center">Kondisi</th>
                 <th className="py-3.5 px-4">Lokasi</th>
                 <th className="py-3.5 px-4 text-center">Aksi</th>
@@ -157,14 +227,14 @@ export const AssetsPage: React.FC = () => {
             <tbody className="divide-y divide-slate-100">
               {db.assets.length === 0 ? (
                 <tr>
-                  <td colSpan={9} className="text-center py-12 text-slate-400">
+                  <td colSpan={13} className="text-center py-12 text-slate-400">
                     <Layers className="w-8 h-8 mx-auto mb-2 text-slate-300" />
                     <p className="font-semibold text-sm">Belum ada data aset tercatat</p>
                   </td>
                 </tr>
               ) : (
-                db.assets.map((a) => {
-                  const totalVal = (Number(a.purchasePrice) || 0) * (Number(a.quantity) || 1);
+                depreciationList.map(({ asset: a, dep }) => {
+                  const totalVal = dep.acquisitionValue;
                   let condStyle = 'bg-emerald-50 text-emerald-700 border-emerald-200';
                   if (a.condition === 'Perlu Perbaikan') {
                     condStyle = 'bg-amber-50 text-amber-700 border-amber-200';
@@ -193,6 +263,37 @@ export const AssetsPage: React.FC = () => {
                       </td>
                       <td className="py-3.5 px-4 text-right font-black text-slate-900 whitespace-nowrap font-mono">
                         {formatCurrency(totalVal)}
+                      </td>
+                      <td className="py-3.5 px-4 min-w-[160px]">
+                        <div className="flex items-center gap-2">
+                          <div className="flex-1 h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full rounded-full ${
+                                dep.isFullyDepreciated
+                                  ? 'bg-slate-400'
+                                  : dep.percentDepreciated >= 75
+                                  ? 'bg-amber-500'
+                                  : 'bg-emerald-500'
+                              }`}
+                              style={{ width: `${Math.min(100, dep.percentDepreciated).toFixed(1)}%` }}
+                            />
+                          </div>
+                          <span className="text-[10px] text-slate-500 font-mono whitespace-nowrap">
+                            {formatMonths(dep.ageMonths)} / {formatMonths(dep.lifeMonths)}
+                          </span>
+                        </div>
+                      </td>
+                      <td className="py-3.5 px-4 text-right whitespace-nowrap font-mono text-slate-600">
+                        {dep.isFullyDepreciated ? '—' : formatCurrency(dep.monthlyDepreciation)}
+                      </td>
+                      <td className="py-3.5 px-4 text-right whitespace-nowrap font-mono text-amber-700">
+                        {formatCurrency(dep.accumulatedDepreciation)}
+                      </td>
+                      <td className="py-3.5 px-4 text-right whitespace-nowrap font-mono font-bold text-emerald-700">
+                        {formatCurrency(dep.bookValue)}
+                        {dep.isFullyDepreciated && (
+                          <span className="block text-[9px] text-slate-400 font-sans">selesai disusutkan</span>
+                        )}
                       </td>
                       <td className="py-3.5 px-4 text-center whitespace-nowrap">
                         <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-md border ${condStyle}`}>
