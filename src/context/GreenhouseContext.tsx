@@ -187,6 +187,7 @@ interface GreenhouseContextType {
   // HR Helper Aliases
   addAttendanceRecord: (att: Omit<AttendanceRecord, 'id' | 'createdAt'>) => Promise<boolean>;
   updateAttendanceRecord: (id: string, att: Partial<AttendanceRecord>, reason?: string) => Promise<boolean>;
+  bulkUpsertAttendance: (items: Array<{ id?: string; data: Partial<AttendanceRecord> }>) => Promise<boolean>;
   recordClockIn: (employeeId: string, location?: string) => Promise<boolean>;
   recordClockOut: (employeeId: string) => Promise<boolean>;
   requestLeave: (leave: Omit<LeaveRequest, 'id' | 'createdAt'>) => Promise<boolean>;
@@ -1475,6 +1476,32 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     return true;
   };
 
+  // Upsert banyak absensi sekaligus dalam SATU penyimpanan (mencegah lost-update
+  // saat beberapa perubahan dilakukan berurutan dari closure state yang sama).
+  const bulkUpsertAttendance = async (
+    items: Array<{ id?: string; data: Partial<AttendanceRecord> }>
+  ): Promise<boolean> => {
+    if (!items || items.length === 0) return true;
+    const ts = new Date().toISOString();
+    let attendances = [...(db.attendances || [])];
+    items.forEach((it, idx) => {
+      if (it.id) {
+        attendances = attendances.map((a) => (a.id === it.id ? { ...a, ...it.data, updatedAt: ts } : a));
+      } else {
+        attendances = [
+          ...attendances,
+          {
+            ...(it.data as AttendanceRecord),
+            id: `ATT-${Date.now()}-${idx}`,
+            createdAt: ts,
+          } as AttendanceRecord,
+        ];
+      }
+    });
+    saveState({ ...db, attendances });
+    return true;
+  };
+
   const deleteAttendance = async (id: string): Promise<boolean> => {
     const prev = (db.attendances || []).find((a) => a.id === id);
     const updated = (db.attendances || []).filter((a) => a.id !== id);
@@ -2210,6 +2237,7 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         deleteOvertimeRequest,
         addAttendanceRecord: recordAttendance,
         updateAttendanceRecord: updateAttendance,
+        bulkUpsertAttendance,
         recordClockIn: async (empId: string) => {
           const res = await clockIn(empId);
           return res.success;

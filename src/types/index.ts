@@ -273,6 +273,7 @@ export interface WorkShift {
 
 export type AttendanceStatus =
   | 'Hadir'
+  | 'Setengah Hari'
   | 'Terlambat'
   | 'Izin'
   | 'Sakit'
@@ -298,6 +299,8 @@ export interface AttendanceRecord {
   method: 'clock_in_out' | 'manual_admin';
   createdAt: string;
   updatedAt?: string;
+  /** Fase konstruksi: menandai absensi ini sudah dibayar upahnya */
+  wagePaid?: boolean;
 }
 
 export type LeaveType = 'Izin' | 'Sakit' | 'Cuti';

@@ -1,8 +1,8 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { useGreenhouse } from '../../context/GreenhouseContext';
 import { formatCurrency, formatDate, formatNumber } from '../../utils/formatters';
 import { RegisterStaffModal } from '../HRPayroll/RegisterStaffModal';
-import { Employee } from '../../types';
+import { AttendanceRecord, Employee, Investment } from '../../types';
 import {
   HardHat,
   Users,
@@ -13,25 +13,110 @@ import {
   X,
   CheckCircle2,
   Info,
+  Printer,
+  UserCheck,
+  UserX,
+  Check,
+  ClipboardList,
 } from 'lucide-react';
 
-export const ConstructionHRPage: React.FC = () => {
-  const { db, addInvestment, addToast } = useGreenhouse();
+// ===== Terbilang sederhana (untuk nota) =====
+function terbilang(n: number): string {
+  const satuan = ['', 'Satu', 'Dua', 'Tiga', 'Empat', 'Lima', 'Enam', 'Tujuh', 'Delapan', 'Sembilan', 'Sepuluh', 'Sebelas'];
+  const f = (x: number): string => {
+    x = Math.floor(x);
+    if (x <= 0) return '';
+    if (x < 12) return satuan[x];
+    if (x < 20) return f(x - 10) + ' Belas';
+    if (x < 100) return f(Math.floor(x / 10)) + ' Puluh ' + f(x % 10);
+    if (x < 200) return 'Seratus ' + f(x - 100);
+    if (x < 1000) return f(Math.floor(x / 100)) + ' Ratus ' + f(x % 100);
+    if (x < 2000) return 'Seribu ' + f(x - 1000);
+    if (x < 1000000) return f(Math.floor(x / 1000)) + ' Ribu ' + f(x % 1000);
+    if (x < 1000000000) return f(Math.floor(x / 1000000)) + ' Juta ' + f(x % 1000000);
+    if (x < 1000000000000) return f(Math.floor(x / 1000000000)) + ' Miliar ' + f(x % 1000000000);
+    return f(Math.floor(x / 1000000000000)) + ' Triliun ' + f(x % 1000000000000);
+  };
+  if (n <= 0) return 'Nol Rupiah';
+  return f(n).trim().replace(/\s+/g, ' ') + ' Rupiah';
+}
 
-  // ===== Pekerja konstruksi (Area Kerja = Konstruksi) =====
+interface SlipData {
+  id: string;
+  date: string;
+  workerName: string;
+  position: string;
+  days: number;
+  unit: string;
+  rate: number;
+  total: number;
+  note?: string;
+}
+
+function buildSlipHtml(d: SlipData): string {
+  return `<!doctype html><html lang="id"><head><meta charset="utf-8"><title>Nota Upah - ${d.workerName}</title>
+<style>
+  *{box-sizing:border-box}
+  body{font-family:ui-sans-serif,system-ui,Arial,sans-serif;margin:0;padding:24px;color:#0f172a;background:#fff}
+  .sheet{max-width:420px;margin:0 auto;border:1px solid #e2e8f0;border-radius:14px;padding:22px}
+  .brand{font-weight:800;font-size:15px;letter-spacing:.3px}
+  .sub{font-size:11px;color:#64748b;margin-top:2px}
+  h1{font-size:14px;text-align:center;margin:16px 0 8px;letter-spacing:1px}
+  .line{border-top:1px dashed #cbd5e1;margin:12px 0}
+  table{width:100%;border-collapse:collapse;font-size:12px}
+  td{padding:5px 0;vertical-align:top}
+  .total{display:flex;justify-content:space-between;font-weight:800;font-size:15px;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:10px;padding:10px 12px;color:#065f46}
+  .muted{color:#64748b;font-size:11px;margin:8px 0 0}
+  .badge{display:inline-block;font-size:10px;font-weight:700;color:#92400e;background:#fef3c7;border:1px solid #fcd34d;border-radius:6px;padding:2px 6px;margin-top:6px}
+  .sign{margin-top:34px;display:flex;justify-content:space-between;font-size:11px;text-align:center}
+  .sign div{width:45%}
+  .sign .name{margin-top:44px;border-top:1px solid #94a3b8;padding-top:4px}
+  @media print{ body{padding:0} .sheet{border:none;border-radius:0} }
+</style></head><body>
+<div class="sheet">
+  <div class="brand">GREENHOUSE FINANCE PRO</div>
+  <div class="sub">Tarno Jaya Farm · Nota Upah Tenaga Konstruksi</div>
+  <div class="line"></div>
+  <h1>NOTA / SLIP UPAH</h1>
+  <table>
+    <tr><td>No. Nota</td><td align="right">${d.id}</td></tr>
+    <tr><td>Tanggal</td><td align="right">${formatDate(d.date)}</td></tr>
+    <tr><td>Nama Pekerja</td><td align="right"><b>${d.workerName}</b></td></tr>
+    <tr><td>Jabatan</td><td align="right">${d.position || '-'}</td></tr>
+    <tr><td>Jumlah</td><td align="right">${formatNumber(d.days)} ${d.unit}</td></tr>
+    <tr><td>Tarif / ${d.unit}</td><td align="right">${formatCurrency(d.rate)}</td></tr>
+  </table>
+  <div class="line"></div>
+  <div class="total"><span>TOTAL UPAH</span><span>${formatCurrency(d.total)}</span></div>
+  <p class="muted">Terbilang: <b>${terbilang(d.total)}</b></p>
+  ${d.note ? `<p class="muted">Catatan: ${d.note}</p>` : ''}
+  <span class="badge">Pembukuan: Investasi — Pembangunan (capex) · bukan biaya operasional/HPP</span>
+  <div class="sign">
+    <div><div class="name">Penerima</div></div>
+    <div><div class="name">Pemilik / Admin</div></div>
+  </div>
+</div>
+<script>window.onload=function(){window.print();};</script>
+</body></html>`;
+}
+
+export const ConstructionHRPage: React.FC = () => {
+  const { db, addInvestment, bulkUpsertAttendance, updateEmployee, addToast } = useGreenhouse();
+
+  // ===== Data pekerja konstruksi =====
   const workers = useMemo(
     () => (db.employees || []).filter((e) => e.workArea === 'Konstruksi' && !e.isDeleted),
     [db.employees]
   );
+  const activeWorkers = workers.filter((w) => w.isActive);
 
-  // ===== Catatan upah: histori Investasi + pembayaran dari modul ini =====
+  // ===== Catatan upah (histori Investasi) =====
   const wageItems = useMemo(() => {
     return (db.investments || [])
       .filter((i) => /gaji|upah/i.test(`${i.itemName || ''} ${i.notes || ''}`))
       .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
   }, [db.investments]);
 
-  // Nama pekerja yang cocok pada sebuah catatan upah
   const matchedWorkerNames = (item: { itemName?: string; notes?: string }) => {
     const text = `${item.itemName || ''} ${item.notes || ''}`.toLowerCase();
     return workers.filter((w) => text.includes((w.name || '').toLowerCase())).map((w) => w.name);
@@ -59,32 +144,155 @@ export const ConstructionHRPage: React.FC = () => {
   }, [workers, wageItems]);
 
   const totalPaid = Math.round(wageItems.reduce((s, i) => s + (Number(i.totalAmount) || 0), 0));
-  const totalDays = wageItems
-    .filter((i) => i.unit === 'Hari')
-    .reduce((s, i) => s + (Number(i.quantity) || 0), 0);
   const lastPaymentDate = wageItems[0]?.date || '';
   const lastPaymentAmount = Number(wageItems[0]?.totalAmount) || 0;
 
-  // ===== Modal tambah/edit pekerja =====
+  // ===== Absensi =====
+  const today = new Date().toISOString().slice(0, 10);
+  const [attDate, setAttDate] = useState(today);
+
+  const attendanceFor = (workerId: string, date: string) =>
+    (db.attendances || []).find((a) => a.employeeId === workerId && a.date === date);
+
+  const dayValue = (status?: string) => (status === 'Setengah Hari' ? 0.5 : status === 'Hadir' ? 1 : 0);
+
+  const unpaidDaysFor = (workerId: string, uptoDate: string) =>
+    (db.attendances || [])
+      .filter(
+        (a) =>
+          a.employeeId === workerId &&
+          !a.wagePaid &&
+          (a.date || '') <= uptoDate &&
+          (a.status === 'Hadir' || a.status === 'Setengah Hari')
+      )
+      .reduce((s, a) => s + dayValue(a.status), 0);
+
+  const monthDaysFor = (workerId: string) => {
+    const ym = today.slice(0, 7);
+    return (db.attendances || [])
+      .filter(
+        (a) =>
+          a.employeeId === workerId &&
+          (a.date || '').startsWith(ym) &&
+          (a.status === 'Hadir' || a.status === 'Setengah Hari')
+      )
+      .reduce((s, a) => s + dayValue(a.status), 0);
+  };
+
+  const buildAttendancePayload = (
+    worker: Employee,
+    choice: 'Hadir' | 'Setengah Hari' | 'Alpa'
+  ): Partial<AttendanceRecord> => {
+    const status = choice === 'Alpa' ? 'Alpha' : choice;
+    return {
+      employeeId: worker.id,
+      employeeName: worker.name,
+      date: attDate,
+      greenhouse: worker.greenhouse || 'Semua Greenhouse',
+      shiftName: 'Konstruksi',
+      status,
+      lateMinutes: 0,
+      workHours: choice === 'Hadir' ? 8 : choice === 'Setengah Hari' ? 4 : 0,
+      overtimeHours: 0,
+      note: 'Absensi konstruksi',
+      method: 'manual_admin' as const,
+    };
+  };
+
+  const saveAttendance = async (worker: Employee, choice: 'Hadir' | 'Setengah Hari' | 'Alpa') => {
+    const existing = attendanceFor(worker.id, attDate);
+    const ok = await bulkUpsertAttendance([{ id: existing?.id, data: buildAttendancePayload(worker, choice) }]);
+    if (ok) {
+      addToast(`${worker.name}: ${choice === 'Alpa' ? 'Tidak Hadir' : choice} (${formatDate(attDate)})`, 'success');
+    }
+  };
+
+  const markAllPresent = async () => {
+    const items = activeWorkers
+      .filter((w) => {
+        const a = attendanceFor(w.id, attDate);
+        return !(a && a.status === 'Hadir' && (a.workHours || 0) >= 8);
+      })
+      .map((w) => ({ id: attendanceFor(w.id, attDate)?.id, data: buildAttendancePayload(w, 'Hadir') }));
+    if (items.length === 0) {
+      addToast('Semua pekerja sudah ditandai Hadir pada tanggal ini', 'info');
+      return;
+    }
+    const ok = await bulkUpsertAttendance(items);
+    if (ok) addToast(`${items.length} pekerja ditandai Hadir (${formatDate(attDate)})`, 'success');
+  };
+
+  // ===== Status pekerja =====
+  const toggleWorkerStatus = async (worker: Employee) => {
+    const next = !worker.isActive;
+    const ok = await updateEmployee(worker.id, { isActive: next });
+    if (ok) {
+      addToast(
+        next ? `${worker.name} ditandai AKTIF bekerja` : `${worker.name} ditandai SELESAI / tidak aktif`,
+        next ? 'success' : 'info'
+      );
+    }
+  };
+
+  // ===== Modal tambah/edit =====
   const [isRegisterOpen, setIsRegisterOpen] = useState(false);
   const [editingWorker, setEditingWorker] = useState<Employee | null>(null);
+  const [staffFilter, setStaffFilter] = useState<'all' | 'active' | 'inactive'>('all');
 
-  // ===== Form pembayaran upah =====
+  const visibleRecap = recap.filter(({ worker: w }) =>
+    staffFilter === 'all' ? true : staffFilter === 'active' ? w.isActive : !w.isActive
+  );
+
+  // ===== Form pembayaran =====
   const [payWorkerId, setPayWorkerId] = useState<string | null>(null);
   const [payDays, setPayDays] = useState('1');
   const [payRate, setPayRate] = useState('');
-  const [payDate, setPayDate] = useState(new Date().toISOString().slice(0, 10));
+  const [payDate, setPayDate] = useState(today);
   const [payNote, setPayNote] = useState('');
+  const [markAttendance, setMarkAttendance] = useState(true);
   const [isPaying, setIsPaying] = useState(false);
+  const [paidResult, setPaidResult] = useState<SlipData | null>(null);
+  const [pendingWagePaid, setPendingWagePaid] = useState<{ ids: string[]; beforeCount: number } | null>(null);
+
+  // Setelah investasi pembayaran benar-benar tersimpan ke state, tandai absensi sekaligus
+  // (satu penyimpanan batch agar perubahan tidak saling menimpa / lost update).
+  useEffect(() => {
+    if (!pendingWagePaid) return;
+    if ((db.investments || []).length > pendingWagePaid.beforeCount) {
+      const ids = pendingWagePaid.ids;
+      setPendingWagePaid(null);
+      bulkUpsertAttendance(ids.map((id) => ({ id, data: { wagePaid: true } })));
+    }
+  }, [pendingWagePaid, db.investments, bulkUpsertAttendance]);
 
   const payWorker = workers.find((w) => w.id === payWorkerId) || null;
+  const payUnpaidDays = payWorker ? unpaidDaysFor(payWorker.id, payDate) : 0;
 
   const openPayModal = (w: Employee) => {
+    const unpaid = unpaidDaysFor(w.id, today);
     setPayWorkerId(w.id);
-    setPayDays('1');
+    setPayDays(unpaid > 0 ? String(unpaid) : '1');
     setPayRate(String(w.dailyRate || w.baseSalary || 0));
-    setPayDate(new Date().toISOString().slice(0, 10));
+    setPayDate(today);
     setPayNote('');
+    setMarkAttendance(true);
+    setPaidResult(null);
+  };
+
+  const closePayModal = () => {
+    setPayWorkerId(null);
+    setPaidResult(null);
+  };
+
+  const openPrint = (html: string) => {
+    const w = window.open('', '_blank', 'width=430,height=700');
+    if (!w) {
+      addToast('Popup diblokir browser — izinkan popup untuk mencetak nota', 'warning');
+      return;
+    }
+    w.document.open();
+    w.document.write(html);
+    w.document.close();
   };
 
   const submitPayment = async () => {
@@ -97,6 +305,7 @@ export const ConstructionHRPage: React.FC = () => {
     }
     setIsPaying(true);
     const isTukang = /tukang/i.test(payWorker.position || '');
+    const total = Math.round(days * rate);
     const ok = await addInvestment({
       date: payDate,
       category: 'Pembangunan',
@@ -109,10 +318,65 @@ export const ConstructionHRPage: React.FC = () => {
       notes: payNote.trim() ? `${payWorker.name} - ${payNote.trim()}` : `Upah ${payWorker.name} ${days} hari`,
     });
     setIsPaying(false);
-    if (ok) {
-      addToast(`Upah ${payWorker.name} (${days} hari) tercatat sebagai Investasi Pembangunan`, 'success');
-      setPayWorkerId(null);
+    if (!ok) return;
+
+    // Tandai absensi yang tercakup pembayaran ini sebagai sudah dibayar.
+    // Dilakukan lewat efek setelah state investasi tersimpan (menghindari lost-update).
+    if (markAttendance) {
+      const unpaidRecords = (db.attendances || [])
+        .filter(
+          (a) =>
+            a.employeeId === payWorker.id &&
+            !a.wagePaid &&
+            (a.date || '') <= payDate &&
+            (a.status === 'Hadir' || a.status === 'Setengah Hari')
+        )
+        .sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+      let remaining = days;
+      const ids: string[] = [];
+      for (const rec of unpaidRecords) {
+        const val = dayValue(rec.status);
+        if (remaining >= val) {
+          ids.push(rec.id);
+          remaining -= val;
+        } else {
+          break;
+        }
+      }
+      if (ids.length > 0) {
+        setPendingWagePaid({ ids, beforeCount: (db.investments || []).length });
+      }
     }
+
+    addToast(`Upah ${payWorker.name} (${days} hari) tercatat sebagai Investasi Pembangunan`, 'success');
+    setPaidResult({
+      id: `NOTA-${Date.now().toString().slice(-6)}`,
+      date: payDate,
+      workerName: payWorker.name,
+      position: payWorker.position || '',
+      days,
+      unit: 'Hari',
+      rate,
+      total,
+      note: payNote.trim() || undefined,
+    });
+  };
+
+  const printHistoryItem = (inv: Investment) => {
+    const names = matchedWorkerNames(inv);
+    openPrint(
+      buildSlipHtml({
+        id: String(inv.id || '').slice(0, 22),
+        date: inv.date,
+        workerName: names.length > 0 ? names.join(', ') : inv.supplier || '-',
+        position: '-',
+        days: Number(inv.quantity) || 0,
+        unit: inv.unit || 'Hari',
+        rate: Number(inv.unitPrice) || 0,
+        total: Number(inv.totalAmount) || 0,
+        note: inv.notes,
+      })
+    );
   };
 
   return (
@@ -126,10 +390,9 @@ export const ConstructionHRPage: React.FC = () => {
           </div>
           <h2 className="text-xl sm:text-2xl font-black tracking-tight">HR &amp; Payroll Konstruksi</h2>
           <p className="text-xs sm:text-sm text-slate-300 mt-1 max-w-2xl">
-            Kelola tukang &amp; kuli pembangunan: upah harian, rekap per pekerja, dan riwayat pembayaran. Semua
-            pembayaran otomatis tercatat sebagai{' '}
-            <strong className="text-amber-300">Investasi (Pembangunan/capex)</strong> — tidak masuk biaya operasional
-            &amp; HPP panen.
+            Absensi harian, upah harian, rekap per pekerja, dan nota upah yang bisa dicetak. Semua pembayaran otomatis
+            tercatat sebagai <strong className="text-amber-300">Investasi (Pembangunan/capex)</strong> — tidak masuk
+            biaya operasional &amp; HPP panen.
           </p>
         </div>
         <button
@@ -148,11 +411,14 @@ export const ConstructionHRPage: React.FC = () => {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
         <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Pekerja Konstruksi</span>
+            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Pekerja Aktif</span>
             <HardHat className="w-4 h-4 text-amber-600" />
           </div>
-          <div className="text-lg sm:text-2xl font-black font-mono text-slate-900">{workers.length}</div>
-          <p className="text-[11px] text-slate-500 mt-1">Tukang &amp; kuli terdaftar</p>
+          <div className="text-lg sm:text-2xl font-black font-mono text-slate-900">
+            {activeWorkers.length}
+            <span className="text-sm text-slate-400 font-sans"> / {workers.length}</span>
+          </div>
+          <p className="text-[11px] text-slate-500 mt-1">Aktif / total terdaftar</p>
         </div>
         <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs">
           <div className="flex items-center justify-between mb-2">
@@ -164,11 +430,17 @@ export const ConstructionHRPage: React.FC = () => {
         </div>
         <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs">
           <div className="flex items-center justify-between mb-2">
-            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Akumulasi Hari Kerja</span>
+            <span className="text-xs font-semibold text-slate-500 uppercase tracking-wider">Absensi Hari Ini</span>
             <CalendarDays className="w-4 h-4 text-blue-600" />
           </div>
-          <div className="text-lg sm:text-2xl font-black font-mono text-slate-900">{formatNumber(totalDays)} Hari</div>
-          <p className="text-[11px] text-slate-500 mt-1">Dari catatan upah harian</p>
+          <div className="text-lg sm:text-2xl font-black font-mono text-slate-900">
+            {activeWorkers.filter((w) => {
+              const a = attendanceFor(w.id, today);
+              return a && (a.status === 'Hadir' || a.status === 'Setengah Hari');
+            }).length}
+            <span className="text-sm text-slate-400 font-sans"> hadir</span>
+          </div>
+          <p className="text-[11px] text-slate-500 mt-1">{formatDate(today)}</p>
         </div>
         <div className="p-4 rounded-2xl bg-white border border-slate-200 shadow-xs">
           <div className="flex items-center justify-between mb-2">
@@ -184,24 +456,142 @@ export const ConstructionHRPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Daftar Pekerja */}
+      {/* ===== Absensi Harian ===== */}
       <div className="bg-white rounded-3xl border border-slate-200 shadow-xs p-5 space-y-4">
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+          <h3 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
+            <ClipboardList className="w-4 h-4 text-blue-600" />
+            <span>Absensi Harian Pekerja Konstruksi</span>
+          </h3>
+          <div className="flex items-center gap-2">
+            <input
+              type="date"
+              value={attDate}
+              onChange={(e) => setAttDate(e.target.value)}
+              className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-mono focus:border-emerald-600 outline-none"
+            />
+            <button
+              onClick={markAllPresent}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white text-[11px] font-bold transition cursor-pointer"
+            >
+              <Check className="w-3.5 h-3.5" />
+              <span>Semua Hadir</span>
+            </button>
+          </div>
+        </div>
+
+        {activeWorkers.length === 0 ? (
+          <p className="text-xs text-slate-500 py-3 text-center">
+            Belum ada pekerja aktif. Tambahkan pekerja atau aktifkan kembali pekerja yang selesai.
+          </p>
+        ) : (
+          <div className="divide-y divide-slate-100">
+            {activeWorkers.map((w) => {
+              const rec = attendanceFor(w.id, attDate);
+              const isHadir = rec?.status === 'Hadir' && (rec?.workHours || 0) >= 8;
+              const isHalf = rec?.status === 'Setengah Hari';
+              const isAlpa = rec?.status === 'Alpha';
+              const unpaid = unpaidDaysFor(w.id, today);
+              return (
+                <div key={w.id} className="py-2.5 flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                  <div className="flex items-center gap-3">
+                    {w.avatarUrl ? (
+                      <img src={w.avatarUrl} alt={w.name} className="w-8 h-8 rounded-lg object-cover" />
+                    ) : (
+                      <div className="w-8 h-8 rounded-lg bg-amber-100 flex items-center justify-center">
+                        <HardHat className="w-4 h-4 text-amber-700" />
+                      </div>
+                    )}
+                    <div>
+                      <p className="text-xs font-bold text-slate-900">{w.name}</p>
+                      <p className="text-[10px] text-slate-500">
+                        {w.position} · Rp {formatNumber(w.dailyRate || 0)}/hari
+                        {unpaid > 0 && <span className="text-amber-700 font-semibold"> · {formatNumber(unpaid)} hari belum dibayar</span>}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={() => saveAttendance(w, 'Hadir')}
+                      className={`px-3 py-1.5 rounded-lg text-[11px] font-bold border transition cursor-pointer ${
+                        isHadir
+                          ? 'bg-emerald-600 text-white border-emerald-600'
+                          : 'bg-white text-slate-600 border-slate-200 hover:border-emerald-400'
+                      }`}
+                    >
+                      Hadir
+                    </button>
+                    <button
+                      onClick={() => saveAttendance(w, 'Setengah Hari')}
+                      className={`px-3 py-1.5 rounded-lg text-[11px] font-bold border transition cursor-pointer ${
+                        isHalf
+                          ? 'bg-blue-600 text-white border-blue-600'
+                          : 'bg-white text-slate-600 border-slate-200 hover:border-blue-400'
+                      }`}
+                    >
+                      ½ Hari
+                    </button>
+                    <button
+                      onClick={() => saveAttendance(w, 'Alpa')}
+                      className={`px-3 py-1.5 rounded-lg text-[11px] font-bold border transition cursor-pointer ${
+                        isAlpa
+                          ? 'bg-rose-600 text-white border-rose-600'
+                          : 'bg-white text-slate-600 border-slate-200 hover:border-rose-400'
+                      }`}
+                    >
+                      Alpa
+                    </button>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+        <p className="text-[10px] text-slate-400">
+          Absensi otomatis mengurangi "hari belum dibayar" pada tombol Bayar Upah. Hari yang sudah dibayar ditandai
+          lunas.
+        </p>
+      </div>
+
+      {/* ===== Daftar Pekerja ===== */}
+      <div className="bg-white rounded-3xl border border-slate-200 shadow-xs p-5 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
           <h3 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
             <Users className="w-4 h-4 text-amber-600" />
             <span>Daftar Pekerja Konstruksi</span>
           </h3>
-          <span className="text-[11px] text-slate-500">{workers.length} pekerja terdaftar</span>
+          <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl">
+            {([
+              { key: 'all', label: `Semua (${workers.length})` },
+              { key: 'active', label: `Aktif (${activeWorkers.length})` },
+              { key: 'inactive', label: `Selesai (${workers.length - activeWorkers.length})` },
+            ] as const).map((f) => (
+              <button
+                key={f.key}
+                onClick={() => setStaffFilter(f.key)}
+                className={`px-3 py-1.5 rounded-lg text-[11px] font-bold transition cursor-pointer ${
+                  staffFilter === f.key ? 'bg-white text-slate-900 shadow-xs' : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
         </div>
 
-        {recap.length === 0 ? (
+        {visibleRecap.length === 0 ? (
           <p className="text-xs text-slate-500 py-4 text-center">
-            Belum ada pekerja konstruksi. Klik <strong>Tambah Pekerja</strong> untuk mendaftarkan tukang/kuli.
+            Tidak ada pekerja pada filter ini. Klik <strong>Tambah Pekerja</strong> untuk mendaftarkan tukang/kuli.
           </p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-            {recap.map(({ worker: w, total, entries, lastDate }) => (
-              <div key={w.id} className="p-4 rounded-2xl border border-slate-200 bg-slate-50/60 space-y-3">
+            {visibleRecap.map(({ worker: w, total, entries, lastDate }) => (
+              <div
+                key={w.id}
+                className={`p-4 rounded-2xl border shadow-xs space-y-3 ${
+                  w.isActive ? 'border-slate-200 bg-slate-50/60' : 'border-slate-200 bg-slate-100/70 opacity-80'
+                }`}
+              >
                 <div className="flex items-start justify-between gap-2">
                   <div className="flex items-center gap-2.5 min-w-0">
                     {w.avatarUrl ? (
@@ -216,8 +606,14 @@ export const ConstructionHRPage: React.FC = () => {
                       <p className="text-[11px] text-slate-500 truncate">{w.position} · Staf {w.employmentStatus}</p>
                     </div>
                   </div>
-                  <span className="text-[10px] px-2 py-0.5 rounded-md bg-amber-100 text-amber-800 border border-amber-200 font-bold shrink-0">
-                    Konstruksi
+                  <span
+                    className={`text-[10px] px-2 py-0.5 rounded-md border font-bold shrink-0 ${
+                      w.isActive
+                        ? 'bg-emerald-100 text-emerald-800 border-emerald-200'
+                        : 'bg-slate-200 text-slate-600 border-slate-300'
+                    }`}
+                  >
+                    {w.isActive ? 'Aktif' : 'Selesai'}
                   </span>
                 </div>
 
@@ -231,8 +627,16 @@ export const ConstructionHRPage: React.FC = () => {
                     <span className="font-black text-emerald-700 font-mono">{formatCurrency(total)}</span>
                   </div>
                   <div className="flex justify-between text-slate-500">
-                    <span>{entries} catatan</span>
+                    <span>
+                      Hadir bulan ini: <b className="text-slate-700">{formatNumber(monthDaysFor(w.id))} hari</b>
+                    </span>
                     <span>{lastDate ? `Terakhir: ${formatDate(lastDate)}` : 'Belum dibayar'}</span>
+                  </div>
+                  <div className="flex justify-between text-slate-500">
+                    <span>{entries} catatan pembayaran</span>
+                    <span className={unpaidDaysFor(w.id, today) > 0 ? 'text-amber-700 font-semibold' : ''}>
+                      {formatNumber(unpaidDaysFor(w.id, today))} hari belum dibayar
+                    </span>
                   </div>
                 </div>
 
@@ -243,6 +647,17 @@ export const ConstructionHRPage: React.FC = () => {
                   >
                     <Wallet className="w-3.5 h-3.5" />
                     <span>Bayar Upah</span>
+                  </button>
+                  <button
+                    onClick={() => toggleWorkerStatus(w)}
+                    title={w.isActive ? 'Tandai selesai / tidak aktif' : 'Aktifkan kembali pekerja'}
+                    className={`p-2 rounded-xl border transition cursor-pointer ${
+                      w.isActive
+                        ? 'border-rose-200 text-rose-500 hover:bg-rose-50'
+                        : 'border-emerald-200 text-emerald-600 hover:bg-emerald-50'
+                    }`}
+                  >
+                    {w.isActive ? <UserX className="w-3.5 h-3.5" /> : <UserCheck className="w-3.5 h-3.5" />}
                   </button>
                   <button
                     onClick={() => {
@@ -261,14 +676,16 @@ export const ConstructionHRPage: React.FC = () => {
         )}
       </div>
 
-      {/* Riwayat Pembayaran */}
+      {/* ===== Riwayat Pembayaran ===== */}
       <div className="bg-white rounded-3xl border border-slate-200 shadow-xs p-5 space-y-4">
         <div className="flex items-center justify-between">
           <h3 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
             <Wallet className="w-4 h-4 text-emerald-600" />
             <span>Riwayat Pembayaran Upah</span>
           </h3>
-          <span className="text-[11px] text-slate-500">{wageItems.length} catatan · total {formatCurrency(totalPaid)}</span>
+          <span className="text-[11px] text-slate-500">
+            {wageItems.length} catatan · total {formatCurrency(totalPaid)}
+          </span>
         </div>
 
         {wageItems.length === 0 ? (
@@ -284,6 +701,7 @@ export const ConstructionHRPage: React.FC = () => {
                   <th className="text-right p-2 font-bold">Tarif</th>
                   <th className="text-right p-2 font-bold">Total</th>
                   <th className="text-left p-2 font-bold">Pekerja</th>
+                  <th className="text-center p-2 font-bold">Nota</th>
                 </tr>
               </thead>
               <tbody className="font-mono">
@@ -302,6 +720,15 @@ export const ConstructionHRPage: React.FC = () => {
                       </td>
                       <td className="p-2 font-sans text-slate-600">
                         {names.length > 0 ? names.join(', ') : <span className="text-slate-400">-</span>}
+                      </td>
+                      <td className="p-2 text-center">
+                        <button
+                          onClick={() => printHistoryItem(inv)}
+                          title="Cetak nota upah"
+                          className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:text-emerald-700 hover:border-emerald-300 transition cursor-pointer"
+                        >
+                          <Printer className="w-3.5 h-3.5" />
+                        </button>
                       </td>
                     </tr>
                   );
@@ -325,7 +752,7 @@ export const ConstructionHRPage: React.FC = () => {
         </div>
       </div>
 
-      {/* Modal Bayar Upah */}
+      {/* ===== Modal Bayar Upah ===== */}
       {payWorker && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto">
           <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-emerald-100">
@@ -333,14 +760,16 @@ export const ConstructionHRPage: React.FC = () => {
               <div className="flex items-center gap-2.5">
                 <Wallet className="w-5 h-5" />
                 <div>
-                  <h3 className="text-sm font-extrabold">Bayar Upah Konstruksi</h3>
+                  <h3 className="text-sm font-extrabold">
+                    {paidResult ? 'Pembayaran Berhasil' : 'Bayar Upah Konstruksi'}
+                  </h3>
                   <p className="text-[11px] text-emerald-100">
                     {payWorker.name} · {payWorker.position}
                   </p>
                 </div>
               </div>
               <button
-                onClick={() => setPayWorkerId(null)}
+                onClick={closePayModal}
                 className="p-1.5 rounded-lg hover:bg-white/10 transition cursor-pointer"
                 title="Tutup"
               >
@@ -348,78 +777,131 @@ export const ConstructionHRPage: React.FC = () => {
               </button>
             </div>
 
-            <div className="p-5 space-y-4 text-xs">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="font-semibold text-slate-700 block mb-1">Tanggal Bayar</label>
-                  <input
-                    type="date"
-                    value={payDate}
-                    onChange={(e) => setPayDate(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:border-emerald-600 outline-none font-mono"
-                  />
-                </div>
-                <div>
-                  <label className="font-semibold text-slate-700 block mb-1">Jumlah Hari</label>
-                  <input
-                    type="number"
-                    min="1"
-                    value={payDays}
-                    onChange={(e) => setPayDays(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:border-emerald-600 outline-none font-mono"
-                  />
-                </div>
-                <div>
-                  <label className="font-semibold text-slate-700 block mb-1">Tarif / Hari (Rp)</label>
-                  <input
-                    type="number"
-                    value={payRate}
-                    onChange={(e) => setPayRate(e.target.value)}
-                    className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:border-emerald-600 outline-none font-mono"
-                  />
-                </div>
-                <div>
-                  <label className="font-semibold text-slate-700 block mb-1">Total Upah</label>
-                  <div className="w-full px-3 py-2 rounded-xl bg-emerald-50 border border-emerald-200 font-black text-emerald-800 font-mono">
-                    {formatCurrency((Number(payDays) || 0) * (Number(payRate) || 0))}
+            {paidResult ? (
+              <div className="p-5 space-y-4 text-xs">
+                <div className="p-4 rounded-2xl bg-emerald-50 border border-emerald-200 text-emerald-900 flex items-start gap-3">
+                  <CheckCircle2 className="w-5 h-5 mt-0.5 shrink-0" />
+                  <div>
+                    <p className="font-bold">Upah tercatat sebagai Investasi (Pembangunan)</p>
+                    <p className="mt-0.5">
+                      {paidResult.workerName} · {formatNumber(paidResult.days)} hari ×{' '}
+                      {formatCurrency(paidResult.rate)} = <b>{formatCurrency(paidResult.total)}</b>
+                    </p>
                   </div>
                 </div>
+                <div className="flex items-center justify-end gap-2">
+                  <button
+                    onClick={() => openPrint(buildSlipHtml(paidResult))}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold transition cursor-pointer"
+                  >
+                    <Printer className="w-3.5 h-3.5" />
+                    <span>Cetak Nota Upah</span>
+                  </button>
+                  <button
+                    onClick={closePayModal}
+                    className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 font-semibold hover:bg-slate-50 transition cursor-pointer"
+                  >
+                    Selesai
+                  </button>
+                </div>
               </div>
+            ) : (
+              <div className="p-5 space-y-4 text-xs">
+                {payUnpaidDays > 0 && (
+                  <div className="p-3 rounded-xl bg-blue-50 border border-blue-200 text-blue-900 flex items-start gap-2">
+                    <CalendarDays className="w-4 h-4 mt-0.5 shrink-0" />
+                    <span>
+                      Dari absensi: <b>{formatNumber(payUnpaidDays)} hari</b> belum dibayar (otomatis diisikan ke
+                      Jumlah Hari, bisa diubah).
+                    </span>
+                  </div>
+                )}
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="font-semibold text-slate-700 block mb-1">Tanggal Bayar</label>
+                    <input
+                      type="date"
+                      value={payDate}
+                      onChange={(e) => setPayDate(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:border-emerald-600 outline-none font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="font-semibold text-slate-700 block mb-1">Jumlah Hari</label>
+                    <input
+                      type="number"
+                      min="0.5"
+                      step="0.5"
+                      value={payDays}
+                      onChange={(e) => setPayDays(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:border-emerald-600 outline-none font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="font-semibold text-slate-700 block mb-1">Tarif / Hari (Rp)</label>
+                    <input
+                      type="number"
+                      value={payRate}
+                      onChange={(e) => setPayRate(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:border-emerald-600 outline-none font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="font-semibold text-slate-700 block mb-1">Total Upah</label>
+                    <div className="w-full px-3 py-2 rounded-xl bg-emerald-50 border border-emerald-200 font-black text-emerald-800 font-mono">
+                      {formatCurrency((Number(payDays) || 0) * (Number(payRate) || 0))}
+                    </div>
+                  </div>
+                </div>
 
-              <div>
-                <label className="font-semibold text-slate-700 block mb-1">Catatan (opsional)</label>
-                <input
-                  type="text"
-                  value={payNote}
-                  onChange={(e) => setPayNote(e.target.value)}
-                  placeholder="mis. pasang gully, cor pondasi, angkat bambu..."
-                  className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:border-emerald-600 outline-none"
-                />
+                <div>
+                  <label className="font-semibold text-slate-700 block mb-1">Catatan (opsional)</label>
+                  <input
+                    type="text"
+                    value={payNote}
+                    onChange={(e) => setPayNote(e.target.value)}
+                    placeholder="mis. pasang gully, cor pondasi, angkat bambu..."
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:border-emerald-600 outline-none"
+                  />
+                </div>
+
+                <label className="flex items-center gap-2 text-[11px] text-slate-700 bg-slate-50 border border-slate-200 rounded-xl px-3 py-2 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={markAttendance}
+                    onChange={(e) => setMarkAttendance(e.target.checked)}
+                    className="accent-emerald-600"
+                  />
+                  <span>
+                    Tandai absensi yang tercakup ({formatNumber(Math.min(payUnpaidDays, Number(payDays) || 0))} hari)
+                    sebagai <b>sudah dibayar</b>
+                  </span>
+                </label>
+
+                <label className="flex items-center gap-2 text-[11px] text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2">
+                  <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
+                  <span>
+                    Otomatis dicatat sebagai <strong>Investasi (Pembangunan)</strong> — bukan biaya operasional/HPP.
+                  </span>
+                </label>
+
+                <div className="flex items-center justify-end gap-2 pt-1">
+                  <button
+                    onClick={closePayModal}
+                    className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 font-semibold hover:bg-slate-50 transition cursor-pointer"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    onClick={submitPayment}
+                    disabled={isPaying}
+                    className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold shadow-sm transition disabled:opacity-60 cursor-pointer"
+                  >
+                    {isPaying ? 'Menyimpan...' : 'Bayar & Catat'}
+                  </button>
+                </div>
               </div>
-
-              <label className="flex items-center gap-2 text-[11px] text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2">
-                <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
-                <span>
-                  Otomatis dicatat sebagai <strong>Investasi (Pembangunan)</strong> — bukan biaya operasional/HPP.
-                </span>
-              </label>
-
-              <div className="flex items-center justify-end gap-2 pt-1">
-                <button
-                  onClick={() => setPayWorkerId(null)}
-                  className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 font-semibold hover:bg-slate-50 transition cursor-pointer"
-                >
-                  Batal
-                </button>
-                <button
-                  onClick={submitPayment}
-                  disabled={isPaying}
-                  className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold shadow-sm transition disabled:opacity-60 cursor-pointer"
-                >
-                  {isPaying ? 'Menyimpan...' : 'Bayar & Catat'}
-                </button>
-              </div>
-            </div>
+            )}
           </div>
         </div>
       )}
