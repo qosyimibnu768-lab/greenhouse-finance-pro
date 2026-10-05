@@ -7,12 +7,14 @@ interface RegisterStaffModalProps {
   isOpen: boolean;
   onClose: () => void;
   employeeToEdit?: Employee | null;
+  defaultWorkArea?: WorkArea;
 }
 
 export const RegisterStaffModal: React.FC<RegisterStaffModalProps> = ({
   isOpen,
   onClose,
   employeeToEdit,
+  defaultWorkArea,
 }) => {
   const { db, addEmployee, updateEmployee, addToast } = useGreenhouse();
 
@@ -56,13 +58,13 @@ export const RegisterStaffModal: React.FC<RegisterStaffModalProps> = ({
         gender: 'Laki-laki',
         phone: '',
         address: '',
-        position: 'Operator Nutrisi DFT',
+        position: defaultWorkArea === 'Konstruksi' ? 'Tukang Bangunan' : 'Operator Nutrisi DFT',
         division: 'Operasional Kebun',
         greenhouse: 'Greenhouse 1',
-        workArea: 'Budidaya',
+        workArea: defaultWorkArea || 'Budidaya',
         joinDate: new Date().toISOString().split('T')[0],
-        employmentStatus: 'Tetap',
-        salaryType: 'Bulanan',
+        employmentStatus: defaultWorkArea === 'Konstruksi' ? 'Harian' : 'Tetap',
+        salaryType: defaultWorkArea === 'Konstruksi' ? 'Harian' : 'Bulanan',
         baseSalary: 3500000,
         dailyRate: 120000,
         hourlyRate: 20000,
@@ -74,7 +76,7 @@ export const RegisterStaffModal: React.FC<RegisterStaffModalProps> = ({
         isActive: true,
       });
     }
-  }, [employeeToEdit, db.employees, isOpen]);
+  }, [employeeToEdit, db.employees, isOpen, defaultWorkArea]);
 
   // Camera stream handler
   useEffect(() => {

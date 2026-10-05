@@ -74,6 +74,12 @@ export const HRPayrollPage: React.FC<HRPayrollProps> = ({
     addToast,
   } = useGreenhouse();
 
+  // Staf operasional saja — pekerja konstruksi dikelola di modul "HR Konstruksi"
+  const operationalEmployees = useMemo(
+    () => (db.employees || []).filter((e) => e.workArea !== 'Konstruksi'),
+    [db.employees]
+  );
+
   const [activeTab, setActiveTab] = useState<string>(currentSubtab);
 
   // Sync prop changes if changed externally from navigation
@@ -149,7 +155,7 @@ export const HRPayrollPage: React.FC<HRPayrollProps> = ({
 
   // Filtered staff
   const filteredEmployees = useMemo(() => {
-    return (db.employees || []).filter((emp) => {
+    return operationalEmployees.filter((emp) => {
       if (emp.isDeleted) return false;
       const matchSearch =
         emp.name.toLowerCase().includes(staffSearchQuery.toLowerCase()) ||
@@ -168,7 +174,7 @@ export const HRPayrollPage: React.FC<HRPayrollProps> = ({
 
   // HR Dashboard Stats
   const hrMetrics = useMemo(() => {
-    const activeStaff = (db.employees || []).filter((e) => e.isActive && !e.isDeleted);
+    const activeStaff = operationalEmployees.filter((e) => e.isActive && !e.isDeleted);
     const today = new Date().toISOString().split('T')[0];
     const todayAttendances = (db.attendances || []).filter((a) => a.date === today);
     const presentCount = todayAttendances.filter(
@@ -447,7 +453,7 @@ export const HRPayrollPage: React.FC<HRPayrollProps> = ({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-gray-100">
-                    {(db.employees || [])
+                    {operationalEmployees
                       .filter((e) => e.isActive && !e.isDeleted)
                       .slice(0, 5)
                       .map((emp) => {
@@ -705,7 +711,7 @@ export const HRPayrollPage: React.FC<HRPayrollProps> = ({
               </button>
               <button
                 onClick={() => {
-                  const emp = (db.employees || [])[0];
+                  const emp = operationalEmployees[0];
                   setManualAttData({
                     employeeId: emp?.id || '',
                     date: attendanceDate,
@@ -866,7 +872,7 @@ export const HRPayrollPage: React.FC<HRPayrollProps> = ({
             </div>
             <button
               onClick={() => {
-                const first = (db.employees || [])[0];
+                const first = operationalEmployees[0];
                 setOvertimeFormData({
                   employeeId: first?.id || '',
                   date: new Date().toISOString().split('T')[0],
@@ -971,7 +977,7 @@ export const HRPayrollPage: React.FC<HRPayrollProps> = ({
             </div>
             <button
               onClick={() => {
-                const first = (db.employees || [])[0];
+                const first = operationalEmployees[0];
                 setLeaveFormData({
                   employeeId: first?.id || '',
                   type: 'Izin',
@@ -1368,7 +1374,7 @@ export const HRPayrollPage: React.FC<HRPayrollProps> = ({
                 onChange={(e) => setManualAttData({ ...manualAttData, employeeId: e.target.value })}
                 className="w-full text-xs p-2 border border-gray-300 rounded-xl"
               >
-                {(db.employees || []).map((e) => (
+                {operationalEmployees.map((e) => (
                   <option key={e.id} value={e.id}>
                     {e.name} ({e.position})
                   </option>
@@ -1465,7 +1471,7 @@ export const HRPayrollPage: React.FC<HRPayrollProps> = ({
                 }
                 className="w-full text-xs p-2 border border-gray-300 rounded-xl"
               >
-                {(db.employees || []).map((e) => (
+                {operationalEmployees.map((e) => (
                   <option key={e.id} value={e.id}>
                     {e.name} ({e.position})
                   </option>
@@ -1559,7 +1565,7 @@ export const HRPayrollPage: React.FC<HRPayrollProps> = ({
                 }
                 className="w-full text-xs p-2 border border-gray-300 rounded-xl"
               >
-                {(db.employees || []).map((e) => (
+                {operationalEmployees.map((e) => (
                   <option key={e.id} value={e.id}>
                     {e.name} ({e.position})
                   </option>

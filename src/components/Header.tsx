@@ -27,6 +27,7 @@ const TAB_TITLES: Record<NavItemKey, { title: string; subtitle: string }> = {
   'hutang-piutang': { title: 'Hutang & Piutang', subtitle: 'Kontrol tagihan supplier bibit/pupuk dan tempo pembayaran toko buah' },
   laporan: { title: 'Laporan Keuangan & BEP', subtitle: 'Laba rugi, cash flow bulanan, titik impas (BEP), dan kalkulasi ROI' },
   'hr-payroll': { title: 'HR, Absensi & Payroll Karyawan', subtitle: 'Kelola data karyawan, presensi digital, shift, lembur, dan payroll terintegrasi finance' },
+  'hr-konstruksi': { title: 'HR & Payroll Konstruksi', subtitle: 'Kelola tukang & kuli pembangunan greenhouse: upah harian, rekap pekerja, dan riwayat pembayaran (otomatis investasi/capex)' },
   users: { title: 'Profil & Manajemen Pengguna', subtitle: 'Kelola data akun pribadi, hak akses peran, dan manajemen tim kebun' },
   pengaturan: { title: 'Pengaturan & Integrasi', subtitle: 'Google Sheets sync, Apple Shortcuts API, dan manajemen backup' },
 };

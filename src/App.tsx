@@ -26,6 +26,7 @@ import { AssetsPage } from './pages/Assets';
 import { DebtsReceivablesPage } from './pages/DebtsReceivables';
 import { ReportsPage } from './pages/Reports';
 import { HRPayrollPage } from './pages/HRPayroll/HRPayroll';
+import { ConstructionHRPage } from './pages/HRKonstruksi/ConstructionHR';
 import { UsersPage } from './pages/UsersPage';
 import { SettingsIntegrationsPage } from './pages/SettingsIntegrations';
 
@@ -114,6 +115,8 @@ const AppContent: React.FC = () => {
             onSelectSubtab={(sub) => setHrSubtab(sub)}
           />
         );
+      case 'hr-konstruksi':
+        return <ConstructionHRPage />;
       case 'users':
         return <UsersPage />;
       case 'pengaturan':

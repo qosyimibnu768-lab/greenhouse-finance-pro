@@ -15,6 +15,7 @@ import {
   Warehouse,
   Users,
   CalendarDays,
+  HardHat,
 } from 'lucide-react';
 import { useGreenhouse } from '../context/GreenhouseContext';
 
@@ -31,6 +32,7 @@ export type NavItemKey =
   | 'hutang-piutang'
   | 'laporan'
   | 'hr-payroll'
+  | 'hr-konstruksi'
   | 'users'
   | 'pengaturan';
 
@@ -66,7 +68,8 @@ export const Navigation: React.FC<NavigationProps> = ({
   const activeCycles = (db.cycles || []).filter((c) => c.status !== 'Selesai');
   const activeCyclesCount = activeCycles.length;
   const tunnels = db.tunnels || [];
-  const activeEmployeesCount = (employees || []).filter((e) => !e.isDeleted).length;
+  const activeEmployeesCount = (employees || []).filter((e) => !e.isDeleted && e.workArea !== 'Konstruksi').length;
+  const constructionWorkersCount = (employees || []).filter((e) => !e.isDeleted && e.workArea === 'Konstruksi').length;
   const totalCapacity = tunnels.reduce((acc, t) => acc + (Number(t.capacityPlants) || 0), 0);
 
   const uniqueSystems = Array.from(
@@ -119,6 +122,12 @@ export const Navigation: React.FC<NavigationProps> = ({
       label: 'HR & Payroll',
       icon: <Users className="w-4 h-4" />,
       badge: activeEmployeesCount > 0 ? `${activeEmployeesCount} Staf` : undefined,
+    },
+    {
+      key: 'hr-konstruksi',
+      label: 'HR Konstruksi',
+      icon: <HardHat className="w-4 h-4" />,
+      badge: constructionWorkersCount > 0 ? `${constructionWorkersCount} Pekerja` : undefined,
     },
     { key: 'users', label: 'Profil & Pengguna', icon: <Users className="w-4 h-4" />, badge: users.length > 0 ? `${users.length} Akun` : undefined },
     { key: 'pengaturan', label: 'Pengaturan & Integrasi', icon: <Settings className="w-4 h-4" /> },

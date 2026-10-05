@@ -142,7 +142,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
   }, [currentPayrolls]);
 
   const activeStaffCount = useMemo(() => {
-    return (db.employees || []).filter((e) => !e.isDeleted && e.isActive).length;
+    // Staf operasional saja — pekerja konstruksi dikelola di modul HR Konstruksi
+    return (db.employees || []).filter((e) => !e.isDeleted && e.isActive && e.workArea !== 'Konstruksi')
+      .length;
   }, [db.employees]);
 
   return (

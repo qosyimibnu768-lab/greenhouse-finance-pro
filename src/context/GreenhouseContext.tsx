@@ -1643,6 +1643,8 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
 
     const targetEmployees = (db.employees || []).filter((e) => {
       if (e.isDeleted) return false;
+      // Pekerja konstruksi dikelola di modul "HR Konstruksi", bukan payroll bulanan operasional
+      if (e.workArea === 'Konstruksi') return false;
       if (greenhouse && greenhouse !== 'all' && e.greenhouse !== greenhouse) return false;
       return true;
     });

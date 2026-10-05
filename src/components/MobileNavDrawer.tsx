@@ -15,6 +15,7 @@ import {
   Settings,
   X,
   LogOut,
+  HardHat,
 } from 'lucide-react';
 import { NavItemKey } from './Navigation';
 import { useGreenhouse } from '../context/GreenhouseContext';
@@ -57,7 +58,8 @@ export const MobileNavDrawer: React.FC<MobileNavDrawerProps> = ({
 
   const tunnels = db.tunnels || [];
   const activeCycles = (db.cycles || []).filter((c) => c.status !== 'Selesai');
-  const activeStaffCount = (employees || []).filter((e) => !e.isDeleted).length;
+  const activeStaffCount = (employees || []).filter((e) => !e.isDeleted && e.workArea !== 'Konstruksi').length;
+  const constructionWorkersCount = (employees || []).filter((e) => !e.isDeleted && e.workArea === 'Konstruksi').length;
 
   const navSections: {
     title: string;
@@ -116,6 +118,13 @@ export const MobileNavDrawer: React.FC<MobileNavDrawerProps> = ({
           icon: <Users className="w-4 h-4" />,
           badge: activeStaffCount > 0 ? `${activeStaffCount} Staf` : undefined,
           badgeColor: 'bg-emerald-500/20 text-emerald-300',
+        },
+        {
+          key: 'hr-konstruksi',
+          label: 'HR Konstruksi (Pembangunan)',
+          icon: <HardHat className="w-4 h-4" />,
+          badge: constructionWorkersCount > 0 ? `${constructionWorkersCount} Pekerja` : undefined,
+          badgeColor: 'bg-amber-500/20 text-amber-300',
         },
       ],
     },
