@@ -232,17 +232,7 @@ export interface GreenhouseDatabase {
 // ======================== HR & PAYROLL TYPES ========================
 export type EmploymentStatus = 'Tetap' | 'Kontrak' | 'Harian' | 'Freelance';
 export type SalaryPaymentType = 'Bulanan' | 'Harian' | 'Per Jam';
-export type WorkArea =
-  | 'Konstruksi'
-  | 'Budidaya'
-  | 'Nutrisi'
-  | 'Penyiraman'
-  | 'Sanitasi'
-  | 'Panen'
-  | 'Packing'
-  | 'Maintenance'
-  | 'Administrasi'
-  | 'Security';
+export type WorkArea = 'Konstruksi' | 'Budidaya' | 'Panen' | 'Security';
 
 export interface Employee {
   id: string; // e.g. EMP-001
@@ -253,7 +243,7 @@ export interface Employee {
   phone: string;
   address: string;
   position: string; // e.g. 'Kepala Kebun', 'Operator Nutrisi DFT', 'Teknisi Pompa'
-  division: string; // e.g. 'Operasional Kebun', 'Maintenance', 'QC & Logistik'
+  division: string; // e.g. 'Operasional Kebun', 'Perbaikan', 'QC & Logistik Panen', 'Administrasi & Finance'
   greenhouse: string; // e.g. 'Tunnel 1', 'Tunnel 2', 'Semua / Gabungan Greenhouse'
   workArea: WorkArea;
   joinDate: string; // YYYY-MM-DD

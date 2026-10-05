@@ -25,7 +25,7 @@ export const RegisterStaffModal: React.FC<RegisterStaffModalProps> = ({
     position: 'Operator Nutrisi DFT',
     division: 'Operasional Kebun',
     greenhouse: 'Greenhouse 1',
-    workArea: 'Nutrisi',
+    workArea: 'Budidaya',
     joinDate: new Date().toISOString().split('T')[0],
     employmentStatus: 'Tetap',
     salaryType: 'Bulanan',
@@ -59,7 +59,7 @@ export const RegisterStaffModal: React.FC<RegisterStaffModalProps> = ({
         position: 'Operator Nutrisi DFT',
         division: 'Operasional Kebun',
         greenhouse: 'Greenhouse 1',
-        workArea: 'Nutrisi',
+        workArea: 'Budidaya',
         joinDate: new Date().toISOString().split('T')[0],
         employmentStatus: 'Tetap',
         salaryType: 'Bulanan',
@@ -307,10 +307,8 @@ export const RegisterStaffModal: React.FC<RegisterStaffModalProps> = ({
                   className="w-full px-3 py-2 rounded-xl border border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none"
                 >
                   <option value="Operasional Kebun">Operasional Kebun</option>
-                  <option value="Nutrisi & DFT">Nutrisi & DFT</option>
-                  <option value="Maintenance & Listrik">Maintenance & Listrik</option>
+                  <option value="Perbaikan">Perbaikan</option>
                   <option value="QC & Logistik Panen">QC & Logistik Panen</option>
-                  <option value="Sanitasi & Nursery">Sanitasi & Nursery</option>
                   <option value="Administrasi & Finance">Administrasi & Finance</option>
                 </select>
               </div>
@@ -334,19 +332,13 @@ export const RegisterStaffModal: React.FC<RegisterStaffModalProps> = ({
               <div>
                 <label className="block text-xs font-medium text-gray-700 mb-1">Area Kerja Spesifik</label>
                 <select
-                  value={formData.workArea || 'Nutrisi'}
+                  value={formData.workArea || 'Budidaya'}
                   onChange={(e) => setFormData({ ...formData, workArea: e.target.value as WorkArea })}
                   className="w-full px-3 py-2 rounded-xl border border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none"
                 >
                   <option value="Konstruksi">Konstruksi / Pembangunan (fase bangun)</option>
-                  <option value="Nutrisi">Nutrisi DFT</option>
-                  <option value="Budidaya">Budidaya & Pangkas</option>
-                  <option value="Penyiraman">Penyiraman & Otomasi</option>
-                  <option value="Sanitasi">Sanitasi & Kebersihan</option>
-                  <option value="Panen">Panen</option>
-                  <option value="Packing">Packing & Sortasi</option>
-                  <option value="Maintenance">Maintenance & Pompa</option>
-                  <option value="Administrasi">Administrasi</option>
+                  <option value="Budidaya">Budidaya & Perawatan Tanaman</option>
+                  <option value="Panen">Panen & Sortasi</option>
                   <option value="Security">Security & Ronda</option>
                 </select>
                 {formData.workArea === 'Konstruksi' && (
