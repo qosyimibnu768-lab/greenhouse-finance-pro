@@ -106,6 +106,8 @@ export interface Asset {
   economicLifeYears: number;
   location: string;
   notes?: string;
+  /** ID investasi asal (jika aset dibuat dari modul Investasi) */
+  investmentId?: string;
 }
 
 export interface InventoryItem {

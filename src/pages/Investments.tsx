@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useGreenhouse } from '../context/GreenhouseContext';
-import { Investment, InvestmentCategory, TunnelType } from '../types';
+import { Investment, InvestmentCategory, TunnelType, Asset } from '../types';
 import { formatCurrency, formatDate } from '../utils/formatters';
 import { buildGreenhouseSpecLine } from '../utils/greenhouseSpec';
 import {
@@ -13,6 +13,8 @@ import {
   Zap,
   Wrench,
   X,
+  PackagePlus,
+  CheckCircle2,
 } from 'lucide-react';
 
 const CATEGORIES: { key: InvestmentCategory; label: string; icon: React.ReactNode; desc: string }[] = [
@@ -26,7 +28,7 @@ const normalizeInvestmentCategory = (value: string): string =>
   value === 'Instalasi DFT' ? 'Instalasi' : value;
 
 export const InvestmentsPage: React.FC = () => {
-  const { db, metrics, addInvestment, updateInvestment, deleteInvestment } = useGreenhouse();
+  const { db, metrics, addInvestment, updateInvestment, deleteInvestment, addAsset } = useGreenhouse();
   const [selectedCategory, setSelectedCategory] = useState<InvestmentCategory | 'all'>('all');
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingItem, setEditingItem] = useState<Investment | null>(null);
@@ -42,6 +44,59 @@ export const InvestmentsPage: React.FC = () => {
   const [tunnel, setTunnel] = useState<TunnelType>('Semua Greenhouse');
   const [notes, setNotes] = useState('');
   const [error, setError] = useState<string | null>(null);
+
+  // ===== "Jadikan Aset" (buat aset fisik dari baris investasi) =====
+  const [assetSource, setAssetSource] = useState<Investment | null>(null);
+  const [assetName, setAssetName] = useState('');
+  const [assetCategory, setAssetCategory] = useState<Asset['category']>('Pembangunan');
+  const [assetDate, setAssetDate] = useState(new Date().toISOString().slice(0, 10));
+  const [assetPrice, setAssetPrice] = useState('');
+  const [assetQty, setAssetQty] = useState('1');
+  const [assetCondition, setAssetCondition] = useState<Asset['condition']>('Baik');
+  const [assetLife, setAssetLife] = useState('5');
+  const [assetLocation, setAssetLocation] = useState('');
+  const [assetNotes, setAssetNotes] = useState('');
+  const [isAssetSaving, setIsAssetSaving] = useState(false);
+
+  const convertedInvestmentIds = useMemo(
+    () => new Set((db.assets || []).map((a) => a.investmentId).filter(Boolean) as string[]),
+    [db.assets]
+  );
+
+  const openAssetModal = (inv: Investment) => {
+    const normalized = normalizeInvestmentCategory(inv.category);
+    const validCategories: Asset['category'][] = ['Pembangunan', 'Instalasi', 'Listrik & Air', 'Peralatan'];
+    setAssetSource(inv);
+    setAssetName(inv.itemName);
+    setAssetCategory(validCategories.includes(normalized as Asset['category']) ? (normalized as Asset['category']) : 'Lainnya');
+    setAssetDate(inv.date);
+    setAssetPrice(String(inv.unitPrice || 0));
+    setAssetQty(String(inv.quantity || 1));
+    setAssetCondition('Baik');
+    setAssetLife('5');
+    setAssetLocation(inv.tunnel && inv.tunnel !== 'Semua Greenhouse' ? inv.tunnel : 'Greenhouse');
+    setAssetNotes(inv.notes || '');
+  };
+
+  const submitAsset = async () => {
+    if (!assetSource) return;
+    if (!assetName.trim()) return;
+    setIsAssetSaving(true);
+    const ok = await addAsset({
+      name: assetName.trim(),
+      category: assetCategory,
+      purchaseDate: assetDate,
+      purchasePrice: Number(assetPrice) || 0,
+      quantity: Number(assetQty) || 1,
+      condition: assetCondition,
+      economicLifeYears: Number(assetLife) || 1,
+      location: assetLocation,
+      notes: assetNotes || undefined,
+      investmentId: assetSource.id,
+    });
+    setIsAssetSaving(false);
+    if (ok) setAssetSource(null);
+  };
 
   const calculatedTotal = (Number(quantity) || 1) * (Number(unitPrice) || 0);
 
@@ -280,6 +335,19 @@ export const InvestmentsPage: React.FC = () => {
                     </td>
                     <td className="py-3.5 px-4 text-center whitespace-nowrap">
                       <div className="flex items-center justify-center gap-1">
+                        {convertedInvestmentIds.has(inv.id) ? (
+                          <span title="Sudah tercatat sebagai aset" className="p-1 text-emerald-600">
+                            <CheckCircle2 className="w-3.5 h-3.5" />
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => openAssetModal(inv)}
+                            title="Jadikan Aset Fisik Kebun"
+                            className="p-1 rounded-md text-slate-400 hover:text-blue-700 hover:bg-slate-100 cursor-pointer"
+                          >
+                            <PackagePlus className="w-3.5 h-3.5" />
+                          </button>
+                        )}
                         <button
                           onClick={() => openEditModal(inv)}
                           className="p-1 rounded-md text-slate-400 hover:text-emerald-700 hover:bg-slate-100 cursor-pointer"
@@ -452,6 +520,146 @@ export const InvestmentsPage: React.FC = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modal Jadikan Aset */}
+      {assetSource && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-slate-900/60 backdrop-blur-xs overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full my-8 overflow-hidden">
+            <div className="px-5 py-4 bg-gradient-to-r from-emerald-700 to-teal-800 text-white flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <PackagePlus className="w-5 h-5" />
+                <div>
+                  <h3 className="font-extrabold text-sm">Jadikan Aset Fisik Kebun</h3>
+                  <p className="text-[11px] text-emerald-100 truncate max-w-[320px]">
+                    Dari investasi: {assetSource.itemName}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setAssetSource(null)}
+                className="p-1 text-white/80 hover:text-white cursor-pointer"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-3 text-xs">
+              <div className="p-3 rounded-xl bg-blue-50 border border-blue-200 text-blue-900">
+                Mencatat aset <b>tidak menambah pengeluaran</b> — kas &amp; laporan keuangan tetap dari Investasi.
+                Aset hanya untuk inventaris fisik.
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="col-span-2">
+                  <label className="font-semibold text-slate-700 block mb-1">Nama Aset</label>
+                  <input
+                    value={assetName}
+                    onChange={(e) => setAssetName(e.target.value)}
+                    className="w-full p-2 rounded-lg border border-slate-300"
+                  />
+                </div>
+                <div>
+                  <label className="font-semibold text-slate-700 block mb-1">Kategori Aset</label>
+                  <select
+                    value={assetCategory}
+                    onChange={(e) => setAssetCategory(e.target.value as Asset['category'])}
+                    className="w-full p-2 rounded-lg border border-slate-300"
+                  >
+                    <option value="Pembangunan">Pembangunan</option>
+                    <option value="Instalasi">Instalasi</option>
+                    <option value="Listrik & Air">Listrik &amp; Air</option>
+                    <option value="Peralatan">Peralatan</option>
+                    <option value="Lainnya">Lainnya</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="font-semibold text-slate-700 block mb-1">Tanggal Perolehan</label>
+                  <input
+                    type="date"
+                    value={assetDate}
+                    onChange={(e) => setAssetDate(e.target.value)}
+                    className="w-full p-2 rounded-lg border border-slate-300 font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="font-semibold text-slate-700 block mb-1">Harga Satuan (Rp)</label>
+                  <input
+                    type="number"
+                    value={assetPrice}
+                    onChange={(e) => setAssetPrice(e.target.value)}
+                    className="w-full p-2 rounded-lg border border-slate-300 font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="font-semibold text-slate-700 block mb-1">Jumlah</label>
+                  <input
+                    type="number"
+                    value={assetQty}
+                    onChange={(e) => setAssetQty(e.target.value)}
+                    className="w-full p-2 rounded-lg border border-slate-300 font-mono"
+                  />
+                </div>
+                <div>
+                  <label className="font-semibold text-slate-700 block mb-1">Kondisi</label>
+                  <select
+                    value={assetCondition}
+                    onChange={(e) => setAssetCondition(e.target.value as Asset['condition'])}
+                    className="w-full p-2 rounded-lg border border-slate-300"
+                  >
+                    <option value="Sangat Baik">Sangat Baik</option>
+                    <option value="Baik">Baik (Berfungsi Normal)</option>
+                    <option value="Perlu Perbaikan">Perlu Perbaikan</option>
+                    <option value="Rusak">Rusak / Tidak Beroperasi</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="font-semibold text-slate-700 block mb-1">Masa Manfaat (tahun)</label>
+                  <input
+                    type="number"
+                    value={assetLife}
+                    onChange={(e) => setAssetLife(e.target.value)}
+                    className="w-full p-2 rounded-lg border border-slate-300 font-mono"
+                  />
+                </div>
+                <div className="col-span-2">
+                  <label className="font-semibold text-slate-700 block mb-1">Lokasi</label>
+                  <input
+                    value={assetLocation}
+                    onChange={(e) => setAssetLocation(e.target.value)}
+                    className="w-full p-2 rounded-lg border border-slate-300"
+                  />
+                </div>
+                <div className="col-span-2">
+                  <label className="font-semibold text-slate-700 block mb-1">Catatan (opsional)</label>
+                  <input
+                    value={assetNotes}
+                    onChange={(e) => setAssetNotes(e.target.value)}
+                    className="w-full p-2 rounded-lg border border-slate-300"
+                  />
+                </div>
+              </div>
+
+              <div className="pt-2 flex justify-end gap-2 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setAssetSource(null)}
+                  className="px-3.5 py-1.5 rounded-lg border border-slate-300 text-slate-700 cursor-pointer"
+                >
+                  Batal
+                </button>
+                <button
+                  type="button"
+                  onClick={submitAsset}
+                  disabled={isAssetSaving}
+                  className="px-4 py-1.5 rounded-lg bg-emerald-700 text-white font-bold hover:bg-emerald-800 disabled:opacity-60 cursor-pointer"
+                >
+                  {isAssetSaving ? 'Menyimpan...' : 'Simpan Aset'}
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}
