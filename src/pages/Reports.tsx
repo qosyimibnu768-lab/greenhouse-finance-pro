@@ -154,8 +154,15 @@ export const ReportsPage: React.FC = () => {
       });
 
       // 1. REVENUE (PENDAPATAN DARI PANEN)
+      // Hanya transaksi penjualan hasil panen (kategori mengandung "melon"/"penjualan")
+      // yang dihitung sebagai pendapatan. Setoran modal / pendanaan (mis. "Modal Masuk")
+      // TIDAK dihitung sebagai omzet — konsisten dengan perhitungan Dashboard.
       const harvestRevenueTrx = monthTrxs
-        .filter((t) => t.type === 'pemasukan')
+        .filter((t) => {
+          if (t.type !== 'pemasukan') return false;
+          const cat = (t.category || '').toLowerCase();
+          return cat.includes('melon') || cat.includes('penjualan');
+        })
         .reduce((sum, t) => sum + (Number(t.amount) || 0), 0);
 
       const harvestKg = monthHarvests.reduce((sum, h) => sum + (Number(h.totalWeightKg) || 0), 0);
@@ -1029,24 +1036,34 @@ export const ReportsPage: React.FC = () => {
                 </div>
 
                 <div className="space-y-2 pl-7 font-mono">
-                  <div className="flex justify-between items-center text-slate-700">
-                    <span className="font-sans">1. Penjualan Buah Melon Grade A (Kualitas Super Pasar Modern)</span>
-                    <span className="font-semibold text-slate-900">
-                      {formatCurrency(activePnLSummary.pendapatanPanen * 0.75)}
-                      <span className="text-[10px] text-slate-400 font-sans ml-2">(Est. 75%)</span>
-                    </span>
-                  </div>
-                  <div className="flex justify-between items-center text-slate-700">
-                    <span className="font-sans">2. Penjualan Buah Melon Grade B (Komersial & Grosir Lokal)</span>
-                    <span className="font-semibold text-slate-900">
-                      {formatCurrency(activePnLSummary.pendapatanPanen * 0.25)}
-                      <span className="text-[10px] text-slate-400 font-sans ml-2">(Est. 25%)</span>
-                    </span>
-                  </div>
-                  {activePnLSummary.totalKg > 0 && (
-                    <div className="pt-2 border-t border-emerald-100 text-[11px] text-emerald-800 font-sans flex justify-between font-medium">
-                      <span>Total Timbangan Panen: <strong>{formatNumber(activePnLSummary.totalKg)} Kg</strong></span>
-                      <span>Rata-rata Realisasi Harga: <strong>{formatCurrency(activePnLSummary.rataRataHargaKg)} / Kg</strong></span>
+                  {activePnLSummary.totalKg > 0 ? (
+                    <>
+                      <div className="flex justify-between items-center text-slate-700">
+                        <span className="font-sans">1. Penjualan Buah Melon Grade A (Kualitas Super Pasar Modern)</span>
+                        <span className="font-semibold text-slate-900">
+                          {formatCurrency(activePnLSummary.gradeAKg * activePnLSummary.rataRataHargaKg)}
+                          <span className="text-[10px] text-slate-400 font-sans ml-2">
+                            ({formatNumber(activePnLSummary.gradeAKg)} Kg · {((activePnLSummary.gradeAKg / activePnLSummary.totalKg) * 100).toFixed(1)}%)
+                          </span>
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center text-slate-700">
+                        <span className="font-sans">2. Penjualan Buah Melon Grade B (Komersial & Grosir Lokal)</span>
+                        <span className="font-semibold text-slate-900">
+                          {formatCurrency(activePnLSummary.gradeBKg * activePnLSummary.rataRataHargaKg)}
+                          <span className="text-[10px] text-slate-400 font-sans ml-2">
+                            ({formatNumber(activePnLSummary.gradeBKg)} Kg · {((activePnLSummary.gradeBKg / activePnLSummary.totalKg) * 100).toFixed(1)}%)
+                          </span>
+                        </span>
+                      </div>
+                      <div className="pt-2 border-t border-emerald-100 text-[11px] text-emerald-800 font-sans flex justify-between font-medium">
+                        <span>Total Timbangan Panen: <strong>{formatNumber(activePnLSummary.totalKg)} Kg</strong></span>
+                        <span>Rata-rata Realisasi Harga: <strong>{formatCurrency(activePnLSummary.rataRataHargaKg)} / Kg</strong></span>
+                      </div>
+                    </>
+                  ) : (
+                    <div className="flex justify-between items-center text-slate-500 font-sans">
+                      <span>Belum ada panen tercatat pada periode ini — pendapatan dari hasil panen masih Rp 0.</span>
                     </div>
                   )}
                 </div>

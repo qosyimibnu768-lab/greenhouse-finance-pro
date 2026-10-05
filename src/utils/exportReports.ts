@@ -76,7 +76,7 @@ export const exportFinancialReportToCSV = (
   // SECTION 1: RINGKASAN EKSEKUTIF & ROI
   rows.push(escapeCSV('--- 1. RINGKASAN EKSEKUTIF & KINERJA KEUANGAN ---'));
   rows.push([escapeCSV('Indikator'), escapeCSV('Nilai'), escapeCSV('Keterangan')].join(','));
-  rows.push([escapeCSV('Total Omzet / Pendapatan Penjualan'), escapeCSV(metrics.totalPemasukan), escapeCSV('Akumulasi hasil panen & penjualan melon')].join(','));
+  rows.push([escapeCSV('Total Omzet / Pendapatan Penjualan'), escapeCSV(metrics.totalOmzet), escapeCSV('Akumulasi hasil panen & penjualan melon')].join(','));
   rows.push([escapeCSV('Total Biaya Operasional (Opex)'), escapeCSV(metrics.totalBiayaOperasional), escapeCSV('Nutrisi AB Mix, benih, listrik, tenaga kerja, packing')].join(','));
   rows.push([escapeCSV('Total Belanja Modal Investasi (Capex)'), escapeCSV(metrics.totalInvestasi), escapeCSV(`Struktur ${materials || 'greenhouse'}, plastik UV, instalasi ${systems || 'hidroponik'}, tandon`)].join(','));
   rows.push([escapeCSV('Laba Operasional Bersih'), escapeCSV(metrics.labaBersih), escapeCSV('Total Omzet - Biaya Operasional')].join(','));
@@ -92,9 +92,8 @@ export const exportFinancialReportToCSV = (
   rows.push(escapeCSV('--- 2. LAPORAN LABA RUGI STANDAR ---'));
   rows.push([escapeCSV('Komponen Akun'), escapeCSV('Jumlah (Rp)'), escapeCSV('% terhadap Omzet')].join(','));
   rows.push([escapeCSV('PENDAPATAN USAHA'), '', ''].join(','));
-  rows.push([escapeCSV('  Penjualan Melon Grade A (Super)'), escapeCSV(metrics.totalPemasukan * 0.75), escapeCSV('75.0%')].join(','));
-  rows.push([escapeCSV('  Penjualan Melon Grade B / Komersial'), escapeCSV(metrics.totalPemasukan * 0.25), escapeCSV('25.0%')].join(','));
-  rows.push([escapeCSV('TOTAL PENDAPATAN USAHA (OMZET)'), escapeCSV(metrics.totalPemasukan), escapeCSV('100.0%')].join(','));
+  rows.push([escapeCSV('  Penjualan Hasil Panen Melon (Grade A & B)'), escapeCSV(metrics.totalOmzet), escapeCSV('100.0%')].join(','));
+  rows.push([escapeCSV('TOTAL PENDAPATAN USAHA (OMZET)'), escapeCSV(metrics.totalOmzet), escapeCSV('100.0%')].join(','));
   rows.push('');
 
   rows.push([escapeCSV('BEBAN OPERASIONAL (OPEX)'), '', ''].join(','));
@@ -108,12 +107,12 @@ export const exportFinancialReportToCSV = (
     });
 
   Object.entries(opexCategories).forEach(([cat, amount]) => {
-    const pct = metrics.totalPemasukan > 0 ? ((amount / metrics.totalPemasukan) * 100).toFixed(1) + '%' : '0%';
+    const pct = metrics.totalOmzet > 0 ? ((amount / metrics.totalOmzet) * 100).toFixed(1) + '%' : '0%';
     rows.push([escapeCSV(`  ${cat}`), escapeCSV(amount), escapeCSV(pct)].join(','));
   });
 
-  rows.push([escapeCSV('TOTAL BEBAN OPERASIONAL'), escapeCSV(metrics.totalBiayaOperasional), escapeCSV(metrics.totalPemasukan > 0 ? `${((metrics.totalBiayaOperasional / metrics.totalPemasukan) * 100).toFixed(1)}%` : '0%')].join(','));
-  rows.push([escapeCSV('LABA OPERASIONAL BERSIH (EBITDA)'), escapeCSV(metrics.labaBersih), escapeCSV(metrics.totalPemasukan > 0 ? `${((metrics.labaBersih / metrics.totalPemasukan) * 100).toFixed(1)}%` : '0%')].join(','));
+  rows.push([escapeCSV('TOTAL BEBAN OPERASIONAL'), escapeCSV(metrics.totalBiayaOperasional), escapeCSV(metrics.totalOmzet > 0 ? `${((metrics.totalBiayaOperasional / metrics.totalOmzet) * 100).toFixed(1)}%` : '0%')].join(','));
+  rows.push([escapeCSV('LABA OPERASIONAL BERSIH (EBITDA)'), escapeCSV(metrics.labaBersih), escapeCSV(metrics.totalOmzet > 0 ? `${((metrics.labaBersih / metrics.totalOmzet) * 100).toFixed(1)}%` : '0%')].join(','));
   rows.push('');
 
   // SECTION 3: ANALISIS KINERJA PER SIKLUS TANAM
@@ -334,7 +333,7 @@ export const exportFinancialReportToPDF = (
   const cardWidth = 58;
   const cardHeight = 18;
   const cards = [
-    { label: 'Total Omzet Penjualan', value: formatCurrency(metrics.totalPemasukan), color: [16, 185, 129] },
+    { label: 'Total Omzet Penjualan', value: formatCurrency(metrics.totalOmzet), color: [16, 185, 129] },
     { label: 'Total Beban Opex', value: formatCurrency(metrics.totalBiayaOperasional), color: [239, 68, 68] },
     { label: 'Total Belanja Capex', value: formatCurrency(metrics.totalInvestasi), color: [245, 158, 11] },
     { label: 'Laba Operasional Bersih', value: formatCurrency(metrics.labaBersih), color: [13, 148, 136] },
@@ -386,26 +385,26 @@ export const exportFinancialReportToPDF = (
 
   const labaRugiBody: any[] = [
     [{ content: 'PENDAPATAN USAHA (REVENUE)', colSpan: 3, styles: { fontStyle: 'bold', fillColor: [241, 245, 249] } }],
-    ['  Penjualan Hasil Panen Melon Super (Grade A & B)', formatCurrency(metrics.totalPemasukan), '100.0%'],
-    [{ content: 'TOTAL PENDAPATAN KOTOR', styles: { fontStyle: 'bold' } }, { content: formatCurrency(metrics.totalPemasukan), styles: { fontStyle: 'bold', textColor: [5, 150, 105] } }, { content: '100.0%', styles: { fontStyle: 'bold' } }],
+    ['  Penjualan Hasil Panen Melon Super (Grade A & B)', formatCurrency(metrics.totalOmzet), '100.0%'],
+    [{ content: 'TOTAL PENDAPATAN KOTOR', styles: { fontStyle: 'bold' } }, { content: formatCurrency(metrics.totalOmzet), styles: { fontStyle: 'bold', textColor: [5, 150, 105] } }, { content: '100.0%', styles: { fontStyle: 'bold' } }],
     [{ content: 'BEBAN OPERASIONAL (OPEX)', colSpan: 3, styles: { fontStyle: 'bold', fillColor: [241, 245, 249] } }],
   ];
 
   Object.entries(catBreakdown).forEach(([cName, amt]) => {
-    const pct = metrics.totalPemasukan > 0 ? ((amt / metrics.totalPemasukan) * 100).toFixed(1) + '%' : '0%';
+    const pct = metrics.totalOmzet > 0 ? ((amt / metrics.totalOmzet) * 100).toFixed(1) + '%' : '0%';
     labaRugiBody.push([`  ${cName}`, formatCurrency(amt), pct]);
   });
 
   labaRugiBody.push([
     { content: 'TOTAL BEBAN OPERASIONAL', styles: { fontStyle: 'bold' } },
     { content: formatCurrency(metrics.totalBiayaOperasional), styles: { fontStyle: 'bold', textColor: [220, 38, 38] } },
-    { content: metrics.totalPemasukan > 0 ? `${((metrics.totalBiayaOperasional / metrics.totalPemasukan) * 100).toFixed(1)}%` : '0%', styles: { fontStyle: 'bold' } },
+    { content: metrics.totalOmzet > 0 ? `${((metrics.totalBiayaOperasional / metrics.totalOmzet) * 100).toFixed(1)}%` : '0%', styles: { fontStyle: 'bold' } },
   ]);
 
   labaRugiBody.push([
     { content: 'LABA OPERASIONAL BERSIH (NET PROFIT)', styles: { fontStyle: 'bold', fillColor: [236, 253, 245] } },
     { content: formatCurrency(metrics.labaBersih), styles: { fontStyle: 'bold', textColor: [5, 150, 105], fillColor: [236, 253, 245] } },
-    { content: metrics.totalPemasukan > 0 ? `${((metrics.labaBersih / metrics.totalPemasukan) * 100).toFixed(1)}%` : '0%', styles: { fontStyle: 'bold', fillColor: [236, 253, 245] } },
+    { content: metrics.totalOmzet > 0 ? `${((metrics.labaBersih / metrics.totalOmzet) * 100).toFixed(1)}%` : '0%', styles: { fontStyle: 'bold', fillColor: [236, 253, 245] } },
   ]);
 
   autoTable(doc, {

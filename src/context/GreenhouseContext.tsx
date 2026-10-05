@@ -720,7 +720,8 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       const amount = Number(t.amount) || 0;
       if (t.type === 'pemasukan') {
         totalPemasukan += amount;
-        if (t.category.toLowerCase().includes('melon') || t.category.toLowerCase().includes('penjualan')) {
+        const category = (t.category || '').toLowerCase();
+        if (category.includes('melon') || category.includes('penjualan')) {
           totalOmzet += amount;
         }
       } else {
