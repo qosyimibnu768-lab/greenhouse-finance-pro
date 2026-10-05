@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useGreenhouse } from '../context/GreenhouseContext';
 import { formatCurrency, formatNumber, formatPercent } from '../utils/formatters';
 import {
@@ -52,6 +52,7 @@ import {
   Tooltip,
   CartesianGrid,
   ReferenceLine,
+  ReferenceDot,
   Legend,
   PieChart,
   Pie,
@@ -88,6 +89,38 @@ export const ReportsPage: React.FC = () => {
   const [bepFixedCostPerCycle, setBepFixedCostPerCycle] = useState<string>('5000000');
   const [bepVariableCostPerKg, setBepVariableCostPerKg] = useState<string>(String(metrics.hppPerKg || 12000));
   const [bepPricePerKg, setBepPricePerKg] = useState<string>('35000');
+  const [bepKgPerCycle, setBepKgPerCycle] = useState<string>('2000');
+  const [bepManual, setBepManual] = useState({
+    investment: false,
+    variable: false,
+    price: false,
+    kgCycle: false,
+  });
+
+  // Data aktual kebun (jika sudah ada) — dipakai untuk mengisi kalkulator otomatis
+  const actualHarvestKg = db.harvests.reduce((s, h) => s + (Number(h.totalWeightKg) || 0), 0);
+  const actualHarvestRevenue = db.harvests.reduce((s, h) => s + (Number(h.totalRevenue) || 0), 0);
+  const actualAvgPrice = actualHarvestKg > 0 ? Math.round(actualHarvestRevenue / actualHarvestKg) : 0;
+  const actualKgPerCycle =
+    db.cycles.length > 0
+      ? Math.round(
+          (db.cycles.reduce((s, c) => s + (Number(c.plantCount) || 0), 0) / db.cycles.length) * 1.65
+        )
+      : 0;
+
+  // Sinkronisasi otomatis selama input belum diubah manual oleh pengguna
+  useEffect(() => {
+    if (!bepManual.investment && metrics.totalInvestasi > 0) setBepInvestment(String(metrics.totalInvestasi));
+  }, [metrics.totalInvestasi, bepManual.investment]);
+  useEffect(() => {
+    if (!bepManual.variable && metrics.hppPerKg > 0) setBepVariableCostPerKg(String(metrics.hppPerKg));
+  }, [metrics.hppPerKg, bepManual.variable]);
+  useEffect(() => {
+    if (!bepManual.price && actualAvgPrice > 0) setBepPricePerKg(String(actualAvgPrice));
+  }, [actualAvgPrice, bepManual.price]);
+  useEffect(() => {
+    if (!bepManual.kgCycle && actualKgPerCycle > 0) setBepKgPerCycle(String(actualKgPerCycle));
+  }, [actualKgPerCycle, bepManual.kgCycle]);
 
   // =========================================================================
   // 1. AUTOMATIC COMPREHENSIVE MONTHLY PROFIT & LOSS ENGINE
@@ -561,6 +594,38 @@ export const ReportsPage: React.FC = () => {
       price,
     };
   }, [bepInvestment, bepFixedCostPerCycle, bepVariableCostPerKg, bepPricePerKg]);
+
+  const bepKgPerCycleNum = Math.max(0, Number(bepKgPerCycle) || 0);
+  const bepPaybackCycles =
+    bepResults.inv > 0 && bepResults.marginPerKg > 0 && bepKgPerCycleNum > 0
+      ? Math.ceil(bepResults.inv / (bepKgPerCycleNum * bepResults.marginPerKg))
+      : 0;
+
+  // Analisis skenario ROI berdasarkan harga jual per kg
+  const roiScenarios = useMemo(() => {
+    const prices = [30000, 35000, 40000, 45000];
+    return prices.map((price) => {
+      const margin = price - bepResults.varCost;
+      const bepKg = margin > 0 ? Math.ceil(bepResults.fixed / margin) : 0;
+      const bepTotalKg = margin > 0 ? Math.ceil((bepResults.inv + bepResults.fixed) / margin) : 0;
+      const omzetPerCycle = bepKgPerCycleNum * price;
+      const labaPerCycle = margin * bepKgPerCycleNum - bepResults.fixed;
+      const payback =
+        margin > 0 && bepKgPerCycleNum > 0 && bepResults.inv > 0
+          ? Math.ceil(bepResults.inv / (bepKgPerCycleNum * margin))
+          : 0;
+      return {
+        price,
+        margin,
+        bepKg,
+        bepTotalKg,
+        omzetPerCycle,
+        labaPerCycle,
+        payback,
+        isCurrent: price === bepResults.price,
+      };
+    });
+  }, [bepResults, bepKgPerCycleNum]);
 
   const handleExportPDF = () => {
     try {
@@ -1737,13 +1802,16 @@ export const ReportsPage: React.FC = () => {
             </div>
 
             {/* Input Parameters */}
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3 text-xs">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3 text-xs">
               <div>
                 <label className="font-semibold text-slate-700 block mb-1">Total Modal Investasi (Rp)</label>
                 <input
                   type="number"
                   value={bepInvestment}
-                  onChange={(e) => setBepInvestment(e.target.value)}
+                  onChange={(e) => {
+                    setBepManual((m) => ({ ...m, investment: true }));
+                    setBepInvestment(e.target.value);
+                  }}
                   className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 outline-none font-mono"
                 />
               </div>
@@ -1761,7 +1829,10 @@ export const ReportsPage: React.FC = () => {
                 <input
                   type="number"
                   value={bepVariableCostPerKg}
-                  onChange={(e) => setBepVariableCostPerKg(e.target.value)}
+                  onChange={(e) => {
+                    setBepManual((m) => ({ ...m, variable: true }));
+                    setBepVariableCostPerKg(e.target.value);
+                  }}
                   className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 outline-none font-mono"
                 />
               </div>
@@ -1770,9 +1841,27 @@ export const ReportsPage: React.FC = () => {
                 <input
                   type="number"
                   value={bepPricePerKg}
-                  onChange={(e) => setBepPricePerKg(e.target.value)}
+                  onChange={(e) => {
+                    setBepManual((m) => ({ ...m, price: true }));
+                    setBepPricePerKg(e.target.value);
+                  }}
                   className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 outline-none font-mono"
                 />
+              </div>
+              <div>
+                <label className="font-semibold text-slate-700 block mb-1">Target Panen / Siklus (Kg)</label>
+                <input
+                  type="number"
+                  value={bepKgPerCycle}
+                  onChange={(e) => {
+                    setBepManual((m) => ({ ...m, kgCycle: true }));
+                    setBepKgPerCycle(e.target.value);
+                  }}
+                  className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:border-emerald-600 focus:ring-1 focus:ring-emerald-600 outline-none font-mono"
+                />
+                {actualKgPerCycle > 0 && (
+                  <span className="text-[10px] text-emerald-700 mt-1 block">Otomatis dari data siklus (asumsi 1,65 kg/pohon)</span>
+                )}
               </div>
             </div>
 
@@ -1808,10 +1897,10 @@ export const ReportsPage: React.FC = () => {
               <div className="p-4 rounded-2xl bg-slate-50 border border-slate-200">
                 <span className="text-[10px] text-slate-500 font-bold block uppercase">Estimasi Siklus Balik Modal</span>
                 <span className="text-xl font-black text-slate-900 mt-1 block font-mono">
-                  ~{bepResults.inv > 0 && bepResults.marginPerKg > 0 ? Math.ceil(bepResults.inv / (2000 * bepResults.marginPerKg)) : 3} Siklus
+                  {bepPaybackCycles > 0 ? `~${bepPaybackCycles} Siklus` : '—'}
                 </span>
                 <span className="text-[11px] text-slate-500 block mt-1 font-mono">
-                  Dengan panen 2.000 kg / siklus
+                  {bepKgPerCycleNum > 0 ? `Dengan panen ${formatNumber(bepKgPerCycleNum)} kg / siklus` : 'Isi target panen per siklus'}
                 </span>
               </div>
             </div>
@@ -1821,14 +1910,84 @@ export const ReportsPage: React.FC = () => {
               <ResponsiveContainer width="100%" height="100%">
                 <LineChart data={bepChartData} margin={{ top: 10, right: 10, left: 10, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                  <XAxis dataKey="volumeKg" tick={{ fontSize: 10 }} tickFormatter={(val) => `${val}kg`} />
+                  <XAxis dataKey="volumeKg" type="number" domain={[0, 'dataMax']} allowDecimals={false} tick={{ fontSize: 10 }} tickFormatter={(val) => `${val}kg`} />
                   <YAxis tick={{ fontSize: 10 }} tickFormatter={(val) => `${(val / 1000000).toFixed(0)}Jt`} />
                   <Tooltip formatter={(val: any) => formatCurrency(Number(val) || 0)} />
                   <Line type="monotone" dataKey="pendapatan" name="Total Pendapatan" stroke="#10b981" strokeWidth={2} dot={false} />
                   <Line type="monotone" dataKey="biayaOperasional" name="Beban Opex" stroke="#3b82f6" strokeWidth={2} dot={false} />
                   <Line type="monotone" dataKey="totalBebanInvestasi" name="Total Capex + Opex" stroke="#f59e0b" strokeWidth={2} dot={false} />
+                  {bepResults.bepKg > 0 && bepResults.marginPerKg > 0 && (
+                    <>
+                      <ReferenceLine
+                        x={bepResults.bepKg}
+                        stroke="#059669"
+                        strokeDasharray="4 4"
+                        label={{ value: `BEP Ops ${formatNumber(bepResults.bepKg)} Kg`, position: 'insideTopLeft', fontSize: 10, fill: '#047857' }}
+                      />
+                      <ReferenceDot x={bepResults.bepKg} y={bepResults.bepRupiah} r={5} fill="#059669" stroke="#ffffff" strokeWidth={2} />
+                    </>
+                  )}
+                  {bepResults.bepTotalInvestmentKg > 0 && bepResults.marginPerKg > 0 && (
+                    <>
+                      <ReferenceLine
+                        x={bepResults.bepTotalInvestmentKg}
+                        stroke="#d97706"
+                        strokeDasharray="4 4"
+                        label={{ value: `BEP Total ${formatNumber(bepResults.bepTotalInvestmentKg)} Kg`, position: 'insideTopRight', fontSize: 10, fill: '#b45309' }}
+                      />
+                      <ReferenceDot x={bepResults.bepTotalInvestmentKg} y={bepResults.bepTotalInvestmentRupiah} r={5} fill="#d97706" stroke="#ffffff" strokeWidth={2} />
+                    </>
+                  )}
                 </LineChart>
               </ResponsiveContainer>
+            </div>
+
+            {/* Analisis Skenario ROI Berdasarkan Harga Jual */}
+            <div className="pt-4 border-t border-slate-100 space-y-3">
+              <h4 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
+                <Percent className="w-4 h-4 text-emerald-700" />
+                <span>Analisis Skenario ROI Berdasarkan Harga Jual</span>
+              </h4>
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead>
+                    <tr className="border-b border-slate-200 text-slate-500">
+                      <th className="text-left p-2 font-bold">Harga Jual / Kg</th>
+                      <th className="text-right p-2 font-bold">Margin / Kg</th>
+                      <th className="text-right p-2 font-bold">BEP Ops</th>
+                      <th className="text-right p-2 font-bold">BEP Total Modal</th>
+                      <th className="text-right p-2 font-bold">Omzet / Siklus</th>
+                      <th className="text-right p-2 font-bold">Laba / Siklus</th>
+                      <th className="text-center p-2 font-bold">Balik Modal</th>
+                    </tr>
+                  </thead>
+                  <tbody className="font-mono">
+                    {roiScenarios.map((s) => (
+                      <tr key={s.price} className={`border-b border-slate-100 ${s.isCurrent ? 'bg-emerald-50/60' : ''}`}>
+                        <td className="text-left p-2 font-sans font-semibold text-slate-800">
+                          {formatCurrency(s.price)}
+                          {s.isCurrent && (
+                            <span className="ml-1.5 text-[10px] px-1.5 py-0.5 rounded bg-emerald-100 text-emerald-800 border border-emerald-200 font-bold">
+                              aktif
+                            </span>
+                          )}
+                        </td>
+                        <td className="text-right p-2">{formatCurrency(s.margin)}</td>
+                        <td className="text-right p-2">{s.margin > 0 ? `${formatNumber(s.bepKg)} Kg` : '—'}</td>
+                        <td className="text-right p-2">{s.margin > 0 ? `${formatNumber(s.bepTotalKg)} Kg` : '—'}</td>
+                        <td className="text-right p-2">{formatCurrency(s.omzetPerCycle)}</td>
+                        <td className={`text-right p-2 font-bold ${s.labaPerCycle >= 0 ? 'text-emerald-700' : 'text-rose-600'}`}>
+                          {formatCurrency(s.labaPerCycle)}
+                        </td>
+                        <td className="text-center p-2">{s.payback > 0 ? `~${s.payback} Siklus` : '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <p className="text-[10px] text-slate-400">
+                *Omzet & laba per siklus memakai target panen {formatNumber(bepKgPerCycleNum)} kg/siklus. Baris hijau = harga jual yang sedang dipakai kalkulator.
+              </p>
             </div>
           </div>
         </div>
