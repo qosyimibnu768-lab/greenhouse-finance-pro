@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useGreenhouse } from '../../context/GreenhouseContext';
 import { formatCurrency, formatDate, formatNumber } from '../../utils/formatters';
+import { buildConstructionSlipHtml, ConstructionSlipData, openPrintWindow } from '../../utils/slipRenderer';
 import { RegisterStaffModal } from '../HRPayroll/RegisterStaffModal';
 import { AttendanceRecord, Employee, Investment } from '../../types';
 import {
@@ -19,86 +20,6 @@ import {
   Check,
   ClipboardList,
 } from 'lucide-react';
-
-// ===== Terbilang sederhana (untuk nota) =====
-function terbilang(n: number): string {
-  const satuan = ['', 'Satu', 'Dua', 'Tiga', 'Empat', 'Lima', 'Enam', 'Tujuh', 'Delapan', 'Sembilan', 'Sepuluh', 'Sebelas'];
-  const f = (x: number): string => {
-    x = Math.floor(x);
-    if (x <= 0) return '';
-    if (x < 12) return satuan[x];
-    if (x < 20) return f(x - 10) + ' Belas';
-    if (x < 100) return f(Math.floor(x / 10)) + ' Puluh ' + f(x % 10);
-    if (x < 200) return 'Seratus ' + f(x - 100);
-    if (x < 1000) return f(Math.floor(x / 100)) + ' Ratus ' + f(x % 100);
-    if (x < 2000) return 'Seribu ' + f(x - 1000);
-    if (x < 1000000) return f(Math.floor(x / 1000)) + ' Ribu ' + f(x % 1000);
-    if (x < 1000000000) return f(Math.floor(x / 1000000)) + ' Juta ' + f(x % 1000000);
-    if (x < 1000000000000) return f(Math.floor(x / 1000000000)) + ' Miliar ' + f(x % 1000000000);
-    return f(Math.floor(x / 1000000000000)) + ' Triliun ' + f(x % 1000000000000);
-  };
-  if (n <= 0) return 'Nol Rupiah';
-  return f(n).trim().replace(/\s+/g, ' ') + ' Rupiah';
-}
-
-interface SlipData {
-  id: string;
-  date: string;
-  workerName: string;
-  position: string;
-  days: number;
-  unit: string;
-  rate: number;
-  total: number;
-  note?: string;
-}
-
-function buildSlipHtml(d: SlipData): string {
-  return `<!doctype html><html lang="id"><head><meta charset="utf-8"><title>Nota Upah - ${d.workerName}</title>
-<style>
-  *{box-sizing:border-box}
-  body{font-family:ui-sans-serif,system-ui,Arial,sans-serif;margin:0;padding:24px;color:#0f172a;background:#fff}
-  .sheet{max-width:420px;margin:0 auto;border:1px solid #e2e8f0;border-radius:14px;padding:22px}
-  .brand{font-weight:800;font-size:15px;letter-spacing:.3px}
-  .sub{font-size:11px;color:#64748b;margin-top:2px}
-  h1{font-size:14px;text-align:center;margin:16px 0 8px;letter-spacing:1px}
-  .line{border-top:1px dashed #cbd5e1;margin:12px 0}
-  table{width:100%;border-collapse:collapse;font-size:12px}
-  td{padding:5px 0;vertical-align:top}
-  .total{display:flex;justify-content:space-between;font-weight:800;font-size:15px;background:#ecfdf5;border:1px solid #a7f3d0;border-radius:10px;padding:10px 12px;color:#065f46}
-  .muted{color:#64748b;font-size:11px;margin:8px 0 0}
-  .badge{display:inline-block;font-size:10px;font-weight:700;color:#92400e;background:#fef3c7;border:1px solid #fcd34d;border-radius:6px;padding:2px 6px;margin-top:6px}
-  .sign{margin-top:34px;display:flex;justify-content:space-between;font-size:11px;text-align:center}
-  .sign div{width:45%}
-  .sign .name{margin-top:44px;border-top:1px solid #94a3b8;padding-top:4px}
-  @media print{ body{padding:0} .sheet{border:none;border-radius:0} }
-</style></head><body>
-<div class="sheet">
-  <div class="brand">GREENHOUSE FINANCE PRO</div>
-  <div class="sub">Tarno Jaya Farm · Nota Upah Tenaga Konstruksi</div>
-  <div class="line"></div>
-  <h1>NOTA / SLIP UPAH</h1>
-  <table>
-    <tr><td>No. Nota</td><td align="right">${d.id}</td></tr>
-    <tr><td>Tanggal</td><td align="right">${formatDate(d.date)}</td></tr>
-    <tr><td>Nama Pekerja</td><td align="right"><b>${d.workerName}</b></td></tr>
-    <tr><td>Jabatan</td><td align="right">${d.position || '-'}</td></tr>
-    <tr><td>Jumlah</td><td align="right">${formatNumber(d.days)} ${d.unit}</td></tr>
-    <tr><td>Tarif / ${d.unit}</td><td align="right">${formatCurrency(d.rate)}</td></tr>
-  </table>
-  <div class="line"></div>
-  <div class="total"><span>TOTAL UPAH</span><span>${formatCurrency(d.total)}</span></div>
-  <p class="muted">Terbilang: <b>${terbilang(d.total)}</b></p>
-  ${d.note ? `<p class="muted">Catatan: ${d.note}</p>` : ''}
-  <span class="badge">Pembukuan: Investasi — Pembangunan (capex) · bukan biaya operasional/HPP</span>
-  <div class="sign">
-    <div><div class="name">Penerima</div></div>
-    <div><div class="name">Pemilik / Admin</div></div>
-  </div>
-</div>
-<script>window.onload=function(){window.print();};</script>
-</body></html>`;
-}
 
 export const ConstructionHRPage: React.FC = () => {
   const { db, addInvestment, bulkUpsertAttendance, updateEmployee, addToast } = useGreenhouse();
@@ -251,7 +172,7 @@ export const ConstructionHRPage: React.FC = () => {
   const [payNote, setPayNote] = useState('');
   const [markAttendance, setMarkAttendance] = useState(true);
   const [isPaying, setIsPaying] = useState(false);
-  const [paidResult, setPaidResult] = useState<SlipData | null>(null);
+  const [paidResult, setPaidResult] = useState<ConstructionSlipData | null>(null);
   const [pendingWagePaid, setPendingWagePaid] = useState<{ ids: string[]; beforeCount: number } | null>(null);
 
   // Setelah investasi pembayaran benar-benar tersimpan ke state, tandai absensi sekaligus
@@ -285,14 +206,9 @@ export const ConstructionHRPage: React.FC = () => {
   };
 
   const openPrint = (html: string) => {
-    const w = window.open('', '_blank', 'width=430,height=700');
-    if (!w) {
+    if (!openPrintWindow(html)) {
       addToast('Popup diblokir browser — izinkan popup untuk mencetak nota', 'warning');
-      return;
     }
-    w.document.open();
-    w.document.write(html);
-    w.document.close();
   };
 
   const submitPayment = async () => {
@@ -365,7 +281,7 @@ export const ConstructionHRPage: React.FC = () => {
   const printHistoryItem = (inv: Investment) => {
     const names = matchedWorkerNames(inv);
     openPrint(
-      buildSlipHtml({
+      buildConstructionSlipHtml({
         id: String(inv.id || '').slice(0, 22),
         date: inv.date,
         workerName: names.length > 0 ? names.join(', ') : inv.supplier || '-',
@@ -791,7 +707,7 @@ export const ConstructionHRPage: React.FC = () => {
                 </div>
                 <div className="flex items-center justify-end gap-2">
                   <button
-                    onClick={() => openPrint(buildSlipHtml(paidResult))}
+                    onClick={() => openPrint(buildConstructionSlipHtml(paidResult))}
                     className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold transition cursor-pointer"
                   >
                     <Printer className="w-3.5 h-3.5" />
