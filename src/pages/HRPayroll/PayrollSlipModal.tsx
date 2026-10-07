@@ -41,7 +41,7 @@ export const PayrollSlipModal: React.FC<PayrollSlipModalProps> = ({ isOpen, onCl
       doc.setFont('helvetica', 'normal');
       doc.setFontSize(9);
       doc.setTextColor(167, 243, 208);
-      doc.text(`${SLIP_COMPANY.farm} · ${SLIP_COMPANY.tagline}`, 14, 20);
+      doc.text(`${SLIP_COMPANY.farm.toUpperCase()}. ${SLIP_COMPANY.tagline}`, 14, 20);
 
       doc.setTextColor(255, 255, 255);
       doc.setFont('helvetica', 'bold');
@@ -239,7 +239,7 @@ export const PayrollSlipModal: React.FC<PayrollSlipModalProps> = ({ isOpen, onCl
                 <div>
                   <p className="font-black tracking-wide text-sm">{SLIP_COMPANY.name}</p>
                   <p className="text-[11px] text-emerald-200">
-                    {SLIP_COMPANY.farm} · {SLIP_COMPANY.tagline}
+                    {SLIP_COMPANY.farm.toUpperCase()}. {SLIP_COMPANY.tagline}
                   </p>
                 </div>
               </div>

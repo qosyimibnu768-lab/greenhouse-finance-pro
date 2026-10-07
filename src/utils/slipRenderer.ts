@@ -6,7 +6,7 @@ import { terbilang } from './terbilang';
 export const SLIP_COMPANY = {
   name: 'GREENHOUSE FINANCE PRO',
   farm: 'Tarno Jaya Farm',
-  tagline: 'Perkebunan Melon Premium · Hidroponik DFT',
+  tagline: 'Perkebunan Hidroponik Melon Premium',
   address: 'Sistem Akuntansi, HPP & Manajemen Operasional Greenhouse Melon',
   ownerName: 'Ibnu (Owner)',
 };
@@ -110,7 +110,7 @@ function headerBand(docTitle: string, docNo: string, periodLine: string, badge: 
     <div class="logo">${LOGO_SVG}</div>
     <div>
       <h1>${SLIP_COMPANY.name}</h1>
-      <p>${SLIP_COMPANY.farm} · ${SLIP_COMPANY.tagline}</p>
+      <p>${SLIP_COMPANY.farm.toUpperCase()}. ${SLIP_COMPANY.tagline}</p>
     </div>
   </div>
   <div class="doc">
