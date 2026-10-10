@@ -94,6 +94,11 @@ export const Header: React.FC<HeaderProps> = ({
             >
               <Menu className="w-5 h-5 text-slate-800" />
             </button>
+            <img
+              src="/logo.png"
+              alt="Tarno Jaya Farm"
+              className="w-8 h-8 sm:w-9 sm:h-9 rounded-full ring-1 ring-emerald-600/20 shadow-xs shrink-0"
+            />
             <div className="min-w-0">
               <div className="flex items-center gap-2">
                 <h1 className="text-base sm:text-xl font-extrabold text-slate-900 tracking-tight truncate">
