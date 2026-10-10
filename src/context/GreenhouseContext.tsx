@@ -133,7 +133,7 @@ interface GreenhouseContextType {
   updateHarvest: (id: string, harvest: Partial<HarvestRecord>) => Promise<boolean>;
   deleteHarvest: (id: string) => Promise<boolean>;
   // Investments
-  addInvestment: (inv: Omit<Investment, 'id' | 'totalAmount'>) => Promise<boolean>;
+  addInvestment: (inv: Omit<Investment, 'id' | 'totalAmount'> & { totalAmountOverride?: number }) => Promise<boolean>;
   updateInvestment: (id: string, inv: Partial<Investment>) => Promise<boolean>;
   deleteInvestment: (id: string) => Promise<boolean>;
   // Assets
@@ -1006,11 +1006,17 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   };
 
   // ======================== INVESTMENTS CRUD ========================
-  const addInvestment = async (invData: Omit<Investment, 'id' | 'totalAmount'>): Promise<boolean> => {
+  const addInvestment = async (
+    invData: Omit<Investment, 'id' | 'totalAmount'> & { totalAmountOverride?: number }
+  ): Promise<boolean> => {
     const id = `INV-${Date.now()}`;
-    const totalAmount = (Number(invData.quantity) || 1) * (Number(invData.unitPrice) || 0);
+    const { totalAmountOverride, ...rest } = invData;
+    const totalAmount =
+      typeof totalAmountOverride === 'number'
+        ? totalAmountOverride
+        : (Number(rest.quantity) || 1) * (Number(rest.unitPrice) || 0);
     const newInv: Investment = {
-      ...invData,
+      ...rest,
       id,
       totalAmount,
     };

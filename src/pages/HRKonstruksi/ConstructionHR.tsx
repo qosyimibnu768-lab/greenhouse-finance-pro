@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useGreenhouse } from '../../context/GreenhouseContext';
 import { formatCurrency, formatDate, formatNumber } from '../../utils/formatters';
-import { buildConstructionSlipHtml, ConstructionSlipData, openPrintWindow } from '../../utils/slipRenderer';
+import { buildConstructionBonHtml, buildConstructionSlipHtml, ConstructionSlipData, openPrintWindow } from '../../utils/slipRenderer';
 import { RegisterStaffModal } from '../HRPayroll/RegisterStaffModal';
 import { AttendanceRecord, Employee, Investment } from '../../types';
 import {
@@ -19,6 +19,7 @@ import {
   UserX,
   Check,
   ClipboardList,
+  Receipt,
 } from 'lucide-react';
 
 /** Kata "gaji"/"upah" sebagai KATA UTUH — "Kikir gergaji" tidak ikut tertangkap. */
@@ -173,6 +174,8 @@ export const ConstructionHRPage: React.FC = () => {
   const [payRate, setPayRate] = useState('');
   const [payDate, setPayDate] = useState(today);
   const [payNote, setPayNote] = useState('');
+  const [payOvertimeHours, setPayOvertimeHours] = useState('0');
+  const [payOvertimeRate, setPayOvertimeRate] = useState('');
   const [markAttendance, setMarkAttendance] = useState(true);
   const [isPaying, setIsPaying] = useState(false);
   const [paidResult, setPaidResult] = useState<ConstructionSlipData | null>(null);
@@ -199,6 +202,8 @@ export const ConstructionHRPage: React.FC = () => {
     setPayRate(String(w.dailyRate || w.baseSalary || 0));
     setPayDate(today);
     setPayNote('');
+    setPayOvertimeHours('0');
+    setPayOvertimeRate('');
     setMarkAttendance(true);
     setPaidResult(null);
   };
@@ -206,6 +211,8 @@ export const ConstructionHRPage: React.FC = () => {
   const closePayModal = () => {
     setPayWorkerId(null);
     setPaidResult(null);
+    setPayOvertimeHours('0');
+    setPayOvertimeRate('');
   };
 
   const openPrint = (html: string) => {
@@ -218,13 +225,24 @@ export const ConstructionHRPage: React.FC = () => {
     if (!payWorker) return;
     const days = Number(payDays) || 0;
     const rate = Number(payRate) || 0;
+    const overtimeHours = Number(payOvertimeHours) || 0;
+    const overtimeRate = Number(payOvertimeRate) || 0;
     if (days <= 0 || rate <= 0) {
       addToast('Jumlah hari dan tarif harus lebih dari 0', 'error');
       return;
     }
+    if (overtimeHours > 0 && overtimeRate <= 0) {
+      addToast('Isi tarif lembur per jam (atau kosongkan jam lembur)', 'error');
+      return;
+    }
     setIsPaying(true);
     const isTukang = /tukang/i.test(payWorker.position || '');
-    const total = Math.round(days * rate);
+    const baseAmount = Math.round(days * rate);
+    const overtimeAmount = Math.round(overtimeHours * overtimeRate);
+    const total = baseAmount + overtimeAmount;
+    const baseNote = payNote.trim()
+      ? `${payWorker.name} - ${payNote.trim()}`
+      : `Upah ${payWorker.name} ${days} hari`;
     const ok = await addInvestment({
       date: payDate,
       category: 'Pembangunan',
@@ -234,7 +252,8 @@ export const ConstructionHRPage: React.FC = () => {
       unitPrice: rate,
       supplier: payWorker.name,
       tunnel: 'Semua Greenhouse',
-      notes: payNote.trim() ? `${payWorker.name} - ${payNote.trim()}` : `Upah ${payWorker.name} ${days} hari`,
+      notes: overtimeAmount > 0 ? `${baseNote} | Lembur ${overtimeHours} jam` : baseNote,
+      totalAmountOverride: total,
     });
     setIsPaying(false);
     if (!ok) return;
@@ -277,6 +296,9 @@ export const ConstructionHRPage: React.FC = () => {
       unit: 'Hari',
       rate,
       total,
+      overtimeHours,
+      overtimeRate,
+      overtimeAmount,
       note: payNote.trim() || undefined,
     });
   };
@@ -293,6 +315,31 @@ export const ConstructionHRPage: React.FC = () => {
         unit: inv.unit || 'Hari',
         rate: Number(inv.unitPrice) || 0,
         total: Number(inv.totalAmount) || 0,
+        overtimeAmount: Math.max(
+          0,
+          Math.round((Number(inv.totalAmount) || 0) - (Number(inv.quantity) || 0) * (Number(inv.unitPrice) || 0))
+        ),
+        note: inv.notes,
+      })
+    );
+  };
+
+  const printHistoryBon = (inv: Investment) => {
+    const names = matchedWorkerNames(inv);
+    openPrint(
+      buildConstructionBonHtml({
+        id: String(inv.id || '').slice(0, 22),
+        date: inv.date,
+        workerName: names.length > 0 ? names.join(', ') : inv.supplier || '-',
+        position: '-',
+        days: Number(inv.quantity) || 0,
+        unit: inv.unit || 'Hari',
+        rate: Number(inv.unitPrice) || 0,
+        total: Number(inv.totalAmount) || 0,
+        overtimeAmount: Math.max(
+          0,
+          Math.round((Number(inv.totalAmount) || 0) - (Number(inv.quantity) || 0) * (Number(inv.unitPrice) || 0))
+        ),
         note: inv.notes,
       })
     );
@@ -641,13 +688,22 @@ export const ConstructionHRPage: React.FC = () => {
                         {names.length > 0 ? names.join(', ') : <span className="text-slate-400">-</span>}
                       </td>
                       <td className="p-2 text-center">
-                        <button
-                          onClick={() => printHistoryItem(inv)}
-                          title="Cetak nota upah"
-                          className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:text-emerald-700 hover:border-emerald-300 transition cursor-pointer"
-                        >
-                          <Printer className="w-3.5 h-3.5" />
-                        </button>
+                        <div className="flex items-center justify-center gap-1">
+                          <button
+                            onClick={() => printHistoryItem(inv)}
+                            title="Cetak nota upah"
+                            className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:text-emerald-700 hover:border-emerald-300 transition cursor-pointer"
+                          >
+                            <Printer className="w-3.5 h-3.5" />
+                          </button>
+                          <button
+                            onClick={() => printHistoryBon(inv)}
+                            title="Cetak bon upah"
+                            className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:text-amber-700 hover:border-amber-300 transition cursor-pointer"
+                          >
+                            <Receipt className="w-3.5 h-3.5" />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
@@ -704,7 +760,11 @@ export const ConstructionHRPage: React.FC = () => {
                     <p className="font-bold">Upah tercatat sebagai Investasi (Pembangunan)</p>
                     <p className="mt-0.5">
                       {paidResult.workerName} · {formatNumber(paidResult.days)} hari ×{' '}
-                      {formatCurrency(paidResult.rate)} = <b>{formatCurrency(paidResult.total)}</b>
+                      {formatCurrency(paidResult.rate)}
+                      {(paidResult.overtimeAmount || 0) > 0
+                        ? ` + lembur ${formatNumber(paidResult.overtimeHours || 0)} jam × ${formatCurrency(paidResult.overtimeRate || 0)}`
+                        : ''}{' '}
+                      = <b>{formatCurrency(paidResult.total)}</b>
                     </p>
                   </div>
                 </div>
@@ -715,6 +775,13 @@ export const ConstructionHRPage: React.FC = () => {
                   >
                     <Printer className="w-3.5 h-3.5" />
                     <span>Cetak Nota Upah</span>
+                  </button>
+                  <button
+                    onClick={() => openPrint(buildConstructionBonHtml(paidResult))}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-white font-bold transition cursor-pointer"
+                  >
+                    <Receipt className="w-3.5 h-3.5" />
+                    <span>Cetak Bon</span>
                   </button>
                   <button
                     onClick={closePayModal}
@@ -766,9 +833,33 @@ export const ConstructionHRPage: React.FC = () => {
                     />
                   </div>
                   <div>
+                    <label className="font-semibold text-slate-700 block mb-1">Lembur (jam)</label>
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.5"
+                      value={payOvertimeHours}
+                      onChange={(e) => setPayOvertimeHours(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:border-emerald-600 outline-none font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="font-semibold text-slate-700 block mb-1">Tarif Lembur / Jam (Rp)</label>
+                    <input
+                      type="number"
+                      value={payOvertimeRate}
+                      onChange={(e) => setPayOvertimeRate(e.target.value)}
+                      placeholder="mis. 20000"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:border-emerald-600 outline-none font-mono"
+                    />
+                  </div>
+                  <div>
                     <label className="font-semibold text-slate-700 block mb-1">Total Upah</label>
                     <div className="w-full px-3 py-2 rounded-xl bg-emerald-50 border border-emerald-200 font-black text-emerald-800 font-mono">
-                      {formatCurrency((Number(payDays) || 0) * (Number(payRate) || 0))}
+                      {formatCurrency(
+                        (Number(payDays) || 0) * (Number(payRate) || 0) +
+                          (Number(payOvertimeHours) || 0) * (Number(payOvertimeRate) || 0)
+                      )}
                     </div>
                   </div>
                 </div>

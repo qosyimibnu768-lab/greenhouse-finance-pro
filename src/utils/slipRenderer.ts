@@ -1,5 +1,5 @@
 import { PayrollRecord } from '../types';
-import { formatCurrency, formatDate } from './formatters';
+import { formatCurrency, formatDate, formatNumber } from './formatters';
 import { terbilang } from './terbilang';
 
 // ===== Identitas perusahaan (dipakai di semua nota) =====
@@ -21,6 +21,9 @@ export interface ConstructionSlipData {
   unit: string;
   rate: number;
   total: number;
+  overtimeHours?: number;
+  overtimeRate?: number;
+  overtimeAmount?: number;
   note?: string;
 }
 
@@ -47,6 +50,11 @@ const BASE_CSS = `
   .badge{display:inline-block;margin-top:6px;font-size:10px;font-weight:800;letter-spacing:.5px;border-radius:999px;padding:3px 10px}
   .body{padding:22px 24px 26px}
   .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .col{display:flex;flex-direction:column;gap:14px}
+  .totbox{margin-top:14px;border-radius:14px;padding:15px 18px;background:linear-gradient(120deg,#065f46,#0d9488);color:#fff;display:flex;justify-content:space-between;align-items:center;gap:14px}
+  .totbox .lbl{font-size:10px;letter-spacing:2px;color:#a7f3d0;font-weight:800}
+  .totbox .amt{font-size:22px;font-weight:900;font-family:ui-monospace,Consolas,monospace;margin-top:3px;text-align:right}
+  .totbox .sub{font-size:10px;color:#d1fae5;text-align:right;margin-top:2px}
   .card{border:1px solid var(--ln);border-radius:12px;padding:13px 15px;background:var(--soft)}
   .card h3{font-size:10px;letter-spacing:1.6px;color:var(--mut);font-weight:800;margin-bottom:8px}
   .kv{display:flex;justify-content:space-between;gap:10px;font-size:12px;padding:3.5px 0}
@@ -110,7 +118,7 @@ function headerBand(docTitle: string, docNo: string, periodLine: string, badge: 
     <div class="logo">${LOGO_SVG}</div>
     <div>
       <h1>${SLIP_COMPANY.name}</h1>
-      <p>${SLIP_COMPANY.farm.toUpperCase()}. ${SLIP_COMPANY.tagline}</p>
+      <p>${SLIP_COMPANY.farm}</p>
     </div>
   </div>
   <div class="doc">
@@ -259,55 +267,132 @@ export function buildPayrollSlipHtml(record: PayrollRecord): string {
 // NOTA UPAH KONSTRUKSI (HR Konstruksi)
 // ============================================================
 export function buildConstructionSlipHtml(d: ConstructionSlipData): string {
+  const baseAmount = Math.round((Number(d.days) || 0) * (Number(d.rate) || 0));
+  const overtimeHours = Number(d.overtimeHours) || 0;
+  const overtimeAmount = Math.round(
+    Number(d.overtimeAmount ?? 0) || overtimeHours * (Number(d.overtimeRate) || 0)
+  );
+  const overtimeRate =
+    Number(d.overtimeRate) || (overtimeHours > 0 && overtimeAmount > 0 ? Math.round(overtimeAmount / overtimeHours) : 0);
+  const total = Math.round(Number(d.total) || baseAmount + overtimeAmount);
+
+  const overtimeRow =
+    overtimeAmount > 0
+      ? `<tr>
+          <td>Upah Lembur${
+            overtimeRate > 0
+              ? `<br/><span style="color:#64748b;font-size:11px">${overtimeHours > 0 ? `${formatNumber(overtimeHours)} jam × ${formatCurrency(overtimeRate)}` : 'perhitungan lembur'}</span>`
+              : ''
+          }</td>
+          <td class="money" style="font-weight:800">${formatCurrency(overtimeAmount)}</td>
+        </tr>`
+      : '';
+
+  const overtimeInfo =
+    overtimeAmount > 0
+      ? `${overtimeHours > 0 ? `${formatNumber(overtimeHours)} jam` : 'Ada'}${overtimeRate > 0 ? ` × ${formatCurrency(overtimeRate)}` : ''}`
+      : '-';
+
   const body = `
   ${headerBand('NOTA / SLIP UPAH', d.id, `Tanggal: ${formatDate(d.date)}`, { text: 'KONSTRUKSI', color: '#f59e0b' })}
   <div class="body">
     <div class="grid2">
-      <div class="card">
-        <h3>DATA PEKERJA</h3>
-        <div class="kv"><span class="k">Nama</span><span class="v">${d.workerName}</span></div>
-        <div class="kv"><span class="k">Jabatan</span><span class="v">${d.position || '-'}</span></div>
-        <div class="kv"><span class="k">Area Kerja</span><span class="v">Konstruksi / Pembangunan</span></div>
+      <div class="col">
+        <div class="card">
+          <h3>DATA PEKERJA</h3>
+          <div class="kv"><span class="k">Nama</span><span class="v">${d.workerName}</span></div>
+          <div class="kv"><span class="k">Jabatan</span><span class="v">${d.position || '-'}</span></div>
+          <div class="kv"><span class="k">Area Kerja</span><span class="v">Konstruksi / Pembangunan</span></div>
+        </div>
+        <div class="card">
+          <h3>RINCIAN PEKERJAAN</h3>
+          <div class="kv"><span class="k">Tanggal Bayar</span><span class="v">${formatDate(d.date)}</span></div>
+          <div class="kv"><span class="k">Jumlah ${d.unit}</span><span class="v">${formatNumber(d.days)} ${d.unit}</span></div>
+          <div class="kv"><span class="k">Tarif / ${d.unit}</span><span class="v">${formatCurrency(d.rate)}</span></div>
+          <div class="kv"><span class="k">Lembur</span><span class="v">${overtimeInfo}</span></div>
+          ${d.note ? `<div class="kv"><span class="k">Catatan</span><span class="v">${d.note}</span></div>` : ''}
+        </div>
       </div>
-      <div class="card">
-        <h3>RINCIAN PEKERJAAN</h3>
-        <div class="kv"><span class="k">Tanggal Bayar</span><span class="v">${formatDate(d.date)}</span></div>
-        <div class="kv"><span class="k">Jumlah ${d.unit}</span><span class="v">${d.days} ${d.unit}</span></div>
-        <div class="kv"><span class="k">Tarif / ${d.unit}</span><span class="v">${formatCurrency(d.rate)}</span></div>
+      <div class="col">
+        <div class="card" style="flex:1">
+          <h3>URAIAN UPAH</h3>
+          <table>
+            <thead><tr><th>Komponen</th><th class="money" style="width:36%">Jumlah</th></tr></thead>
+            <tbody>
+              <tr>
+                <td>Upah ${d.position || 'Tenaga Konstruksi'}<br/><span style="color:#64748b;font-size:11px">${formatNumber(d.days)} ${d.unit} × ${formatCurrency(d.rate)}</span></td>
+                <td class="money" style="font-weight:800">${formatCurrency(baseAmount)}</td>
+              </tr>
+              ${overtimeRow}
+            </tbody>
+          </table>
+        </div>
+        <div class="totbox">
+          <div class="lbl">TOTAL UPAH</div>
+          <div>
+            <div class="amt">${formatCurrency(total)}</div>
+            <div class="sub">${SLIP_COMPANY.farm} · Nota Konstruksi</div>
+          </div>
+        </div>
       </div>
     </div>
-    <table style="margin-top:16px">
-      <thead><tr><th>Uraian Upah</th><th class="money" style="width:22%">Volume</th><th class="money" style="width:20%">Tarif</th><th class="money" style="width:24%">Jumlah</th></tr></thead>
-      <tbody>
-        <tr>
-          <td>Upah ${d.position || 'Tenaga Konstruksi'}${d.note ? `<br/><span style="color:#64748b;font-size:11px">${d.note}</span>` : ''}</td>
-          <td class="money">${d.days} ${d.unit}</td>
-          <td class="money">${formatCurrency(d.rate)}</td>
-          <td class="money" style="font-weight:800">${formatCurrency(d.total)}</td>
-        </tr>
-        <tr class="total"><td colspan="3">TOTAL UPAH DIBAYARKAN</td><td class="money">${formatCurrency(d.total)}</td></tr>
-      </tbody>
-    </table>
-    <div class="net">
-      <div>
-        <div class="lbl">TOTAL UPAH</div>
-        <div class="amt">${formatCurrency(d.total)}</div>
-      </div>
-      <div class="right">
-        <div>${SLIP_COMPANY.farm}</div>
-        <div>Nota Konstruksi</div>
-      </div>
-    </div>
-    <div class="terbilang">Terbilang: <b>${terbilang(d.total)}</b></div>
-    <div class="note">
-      <b>Perlakuan Akuntansi:</b> pembayaran upah ini tercatat sebagai <b>Investasi — Pembangunan (capex)</b>,
-      bukan biaya operasional dan tidak masuk HPP panen.
-    </div>
+    <div class="terbilang">Terbilang: <b>${terbilang(total)}</b></div>
     ${ownerSignature()}
     ${footer(d.id)}
   </div>`;
 
   return shell(`Nota Upah - ${d.workerName}`, body);
+}
+
+/** Bon upah ringkas — bukti pembayaran siap tanda tangan penerima & pembayar. */
+export function buildConstructionBonHtml(d: ConstructionSlipData): string {
+  const baseAmount = Math.round((Number(d.days) || 0) * (Number(d.rate) || 0));
+  const overtimeHours = Number(d.overtimeHours) || 0;
+  const overtimeAmount = Math.round(
+    Number(d.overtimeAmount ?? 0) || overtimeHours * (Number(d.overtimeRate) || 0)
+  );
+  const overtimeRate =
+    Number(d.overtimeRate) || (overtimeHours > 0 && overtimeAmount > 0 ? Math.round(overtimeAmount / overtimeHours) : 0);
+  const total = Math.round(Number(d.total) || baseAmount + overtimeAmount);
+
+  const body = `
+  ${headerBand('BON UPAH', d.id, `Tanggal: ${formatDate(d.date)}`, { text: 'KONSTRUKSI', color: '#f59e0b' })}
+  <div class="body">
+    <div class="card">
+      <h3>DATA PEMBAYARAN</h3>
+      <div class="kv"><span class="k">Nama Pekerja</span><span class="v">${d.workerName}</span></div>
+      <div class="kv"><span class="k">Jabatan</span><span class="v">${d.position || '-'}</span></div>
+      <div class="kv"><span class="k">Upah Harian</span><span class="v">${formatNumber(d.days)} ${d.unit} × ${formatCurrency(d.rate)} = ${formatCurrency(baseAmount)}</span></div>
+      ${
+        overtimeAmount > 0
+          ? `<div class="kv"><span class="k">Lembur</span><span class="v">${overtimeHours > 0 ? `${formatNumber(overtimeHours)} jam × ${formatCurrency(overtimeRate)} = ` : ''}${formatCurrency(overtimeAmount)}</span></div>`
+          : ''
+      }
+      ${d.note ? `<div class="kv"><span class="k">Keterangan</span><span class="v">${d.note}</span></div>` : ''}
+    </div>
+    <div class="totbox" style="margin-top:14px">
+      <div class="lbl">JUMLAH DITERIMA</div>
+      <div>
+        <div class="amt">${formatCurrency(total)}</div>
+        <div class="sub">${SLIP_COMPANY.farm}</div>
+      </div>
+    </div>
+    <div class="terbilang">Terbilang: <b>${terbilang(total)}</b></div>
+    <div class="sign">
+      <div>
+        <div class="role">Penerima,</div>
+        <div class="who">${d.workerName}</div>
+      </div>
+      <div>
+        <div class="role">Pembayar / Owner,</div>
+        <div class="who">${SLIP_COMPANY.ownerName}</div>
+        <div class="role">${SLIP_COMPANY.farm}</div>
+      </div>
+    </div>
+    ${footer(d.id)}
+  </div>`;
+
+  return shell(`Bon Upah - ${d.workerName}`, body);
 }
 
 /** Buka jendela cetak dengan dokumen nota. Mengembalikan false bila popup diblokir. */
