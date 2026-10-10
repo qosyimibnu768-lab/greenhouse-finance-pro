@@ -643,9 +643,14 @@ export const HRPayrollPage: React.FC<HRPayrollProps> = ({
                       </span>
                     </div>
                     <div className="flex justify-between">
-                      <span className="text-gray-400">Rekening Bank:</span>
+                      <span className="text-gray-400">Pembayaran:</span>
                       <span className="font-medium text-gray-700">
-                        {emp.bankName} {emp.bankAccount || '-'}
+                        {(() => {
+                          const isMethod = emp.bankName === 'Tunai / Cash' || emp.bankName === 'Transfer';
+                          const method = isMethod ? emp.bankName : emp.bankName ? 'Transfer' : 'Tunai / Cash';
+                          const detail = isMethod ? emp.bankAccount : [emp.bankName, emp.bankAccount].filter(Boolean).join(' ');
+                          return `${method}${detail ? ` · ${detail}` : ''}`;
+                        })()}
                       </span>
                     </div>
                   </div>

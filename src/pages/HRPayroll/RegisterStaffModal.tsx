@@ -35,7 +35,7 @@ export const RegisterStaffModal: React.FC<RegisterStaffModalProps> = ({
     dailyRate: 120000,
     hourlyRate: 20000,
     overtimeRate: 25000,
-    bankName: 'BCA',
+    bankName: 'Transfer',
     bankAccount: '',
     defaultShiftId: db.workShifts?.[0]?.id || 'SHIFT-01',
     avatarUrl: '',
@@ -69,7 +69,7 @@ export const RegisterStaffModal: React.FC<RegisterStaffModalProps> = ({
         dailyRate: 120000,
         hourlyRate: 20000,
         overtimeRate: 25000,
-        bankName: 'BCA',
+        bankName: defaultWorkArea === 'Konstruksi' ? 'Tunai / Cash' : 'Transfer',
         bankAccount: '',
         defaultShiftId: db.workShifts?.[0]?.id || 'SHIFT-01',
         avatarUrl: `https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=400&q=80`,
@@ -446,14 +446,23 @@ export const RegisterStaffModal: React.FC<RegisterStaffModalProps> = ({
               </div>
 
               <div>
-                <label className="block text-xs font-medium text-gray-700 mb-1">Nama Bank / Dompet</label>
-                <input
-                  type="text"
-                  value={formData.bankName || 'BCA'}
+                <label className="block text-xs font-medium text-gray-700 mb-1">Metode Pembayaran</label>
+                <select
+                  value={
+                    formData.bankName === 'Tunai / Cash'
+                      ? 'Tunai / Cash'
+                      : formData.bankName
+                        ? 'Transfer'
+                        : defaultWorkArea === 'Konstruksi'
+                          ? 'Tunai / Cash'
+                          : 'Transfer'
+                  }
                   onChange={(e) => setFormData({ ...formData, bankName: e.target.value })}
-                  placeholder="BCA / Mandiri / BRI / Cash"
-                  className="w-full px-3 py-2 rounded-xl border border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none"
-                />
+                  className="w-full px-3 py-2 rounded-xl border border-gray-300 focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 outline-none bg-white"
+                >
+                  <option value="Tunai / Cash">Tunai / Cash</option>
+                  <option value="Transfer">Transfer</option>
+                </select>
               </div>
 
               <div className="sm:col-span-2">

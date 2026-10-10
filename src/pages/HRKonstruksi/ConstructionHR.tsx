@@ -1414,7 +1414,12 @@ export const ConstructionHRPage: React.FC = () => {
                   <h3 className="text-sm font-extrabold truncate">{detailWorker.name}</h3>
                   <p className="text-[11px] text-slate-300 truncate">
                     {detailWorker.position} · {detailWorker.isActive ? 'Aktif' : 'Selesai'} · Area{' '}
-                    {detailWorker.workArea || 'Konstruksi'}
+                    {detailWorker.workArea || 'Konstruksi'} · Bayar:{' '}
+                    {detailWorker.bankName === 'Tunai / Cash'
+                      ? 'Tunai / Cash'
+                      : detailWorker.bankName
+                        ? 'Transfer'
+                        : 'Tunai / Cash'}
                   </p>
                 </div>
               </div>
