@@ -7,7 +7,6 @@ import {
   User,
   Eye,
   EyeOff,
-  Building2,
   ShieldCheck,
   AlertCircle,
   RefreshCw,
@@ -101,8 +100,12 @@ export const LoginPage: React.FC = () => {
         <div className="bg-white/95 backdrop-blur-md rounded-3xl shadow-2xl border border-white/20 p-6 sm:p-8 space-y-6">
           {/* Header Branding */}
           <div className="text-center space-y-2">
-            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-600 to-teal-800 text-white shadow-lg shadow-emerald-900/30 mb-1">
-              <Building2 className="w-7 h-7" />
+            <div className="inline-flex items-center justify-center mb-1">
+              <img
+                src="/logo.png"
+                alt="Tarno Jaya Farm"
+                className="w-16 h-16 rounded-full shadow-lg shadow-emerald-900/30 ring-2 ring-emerald-600/20"
+              />
             </div>
             <div className="space-y-1">
               <div className="flex items-center justify-center gap-1.5 text-xs font-bold uppercase tracking-wider text-emerald-700">

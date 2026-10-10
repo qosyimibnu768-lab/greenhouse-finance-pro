@@ -27,7 +27,7 @@ export interface ConstructionSlipData {
   note?: string;
 }
 
-const LOGO_SVG = `<svg viewBox="0 0 24 24" width="26" height="26" fill="none" stroke="#ffffff" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2C7 7 4 10.5 4 14.5A8 8 0 0 0 20 14.5C20 10.5 17 7 12 2z"/><path d="M12 6v13"/><path d="M12 13l3.5-3.5M12 16.5 8.5 13"/></svg>`;
+// Logo dokumen memakai aset gambar /logo.png (lihat .logo pada BASE_CSS).
 
 const BASE_CSS = `
   *{box-sizing:border-box;margin:0;padding:0}
@@ -41,7 +41,8 @@ const BASE_CSS = `
   .sheet{position:relative;width:100%;max-width:200mm;background:#fff;border-radius:14px;overflow:hidden;box-shadow:0 18px 45px rgba(2,6,23,.18)}
   .band{background:linear-gradient(120deg,#022c22 0%,#064e3b 45%,#0f766e 100%);color:#fff;padding:20px 24px;display:flex;justify-content:space-between;gap:16px;align-items:flex-start}
   .brand{display:flex;gap:12px;align-items:center}
-  .logo{width:46px;height:46px;border-radius:13px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.22);display:flex;align-items:center;justify-content:center;flex:0 0 auto}
+  .logo{width:46px;height:46px;border-radius:50%;background:rgba(255,255,255,.10);border:1px solid rgba(255,255,255,.28);display:flex;align-items:center;justify-content:center;flex:0 0 auto;overflow:hidden}
+  .logo img{width:100%;height:100%;object-fit:cover;display:block}
   .brand h1{font-size:17px;letter-spacing:.4px;font-weight:900}
   .brand p{font-size:11px;color:#a7f3d0;margin-top:2px;letter-spacing:.2px}
   .doc{text-align:right;flex:0 0 auto}
@@ -94,7 +95,9 @@ const BASE_CSS = `
 `;
 
 function shell(title: string, body: string): string {
+  const baseHref = typeof window !== 'undefined' && window.location ? window.location.origin : '';
   return `<!doctype html><html lang="id"><head><meta charset="utf-8"/>
+<base href="${baseHref}/"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
 <title>${title}</title>
 <style>${BASE_CSS}</style></head>
@@ -115,7 +118,7 @@ function shell(title: string, body: string): string {
 function headerBand(docTitle: string, docNo: string, periodLine: string, badge: { text: string; color: string }): string {
   return `<div class="band">
   <div class="brand">
-    <div class="logo">${LOGO_SVG}</div>
+    <div class="logo"><img src="/logo.png" alt="Tarno Jaya Farm"/></div>
     <div>
       <h1>${SLIP_COMPANY.name}</h1>
       <p>${SLIP_COMPANY.farm}</p>

@@ -242,7 +242,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
           <div className="text-lg sm:text-2xl font-black font-mono text-amber-800">
             {formatCurrency(metrics.totalInvestasi)}
           </div>
-          <p className="text-[11px] text-slate-500 mt-1">Bambu, UV, DFT & Peralatan</p>
+          <p className="text-[11px] text-slate-500 mt-1">Bambu, UV, Instalasi & Peralatan</p>
         </div>
 
         {/* 6. MODAL PRODUKSI */}
@@ -297,7 +297,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
               <h3 className="font-extrabold text-base tracking-tight text-white">Status Pengembalian Modal & ROI</h3>
             </div>
             <p className="text-xs text-slate-400 mt-1">
-              Greenhouse {(db.tunnels || []).length} Unit · Total Kapasitas {((db.tunnels || []).reduce((a, b) => a + (Number(b.capacityPlants) || 0), 0)).toLocaleString('id-ID')} Tanaman DFT
+              Greenhouse {(db.tunnels || []).length} Unit · Total Kapasitas {((db.tunnels || []).reduce((a, b) => a + (Number(b.capacityPlants) || 0), 0)).toLocaleString('id-ID')} Tanaman
             </p>
           </div>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-left">
@@ -577,7 +577,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
                   <div>
                     <h4 className="font-bold text-xs text-slate-900">{t.name}</h4>
                     <p className="text-[11px] text-slate-500 mt-0.5">
-                      {t.widthM}m × {t.lengthM}m ({t.widthM * t.lengthM} m²) · {t.systemType || 'DFT'}
+                      {t.widthM}m × {t.lengthM}m ({t.widthM * t.lengthM} m²)
+                      {t.systemType ? ` · ${t.systemType.replace(/DFT\s*Hydroponic/i, 'Instalasi Hidroponik').replace(/\bDFT\b/gi, 'Instalasi')}` : ''}
                     </p>
                   </div>
                   <span

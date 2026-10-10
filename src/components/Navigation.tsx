@@ -10,7 +10,6 @@ import {
   CreditCard,
   BarChart3,
   Settings,
-  Leaf,
   ShieldCheck,
   Warehouse,
   Users,
@@ -138,9 +137,11 @@ export const Navigation: React.FC<NavigationProps> = ({
       {/* Brand Header */}
       <div className="p-5 border-b border-slate-800/80">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-emerald-400 to-emerald-600 flex items-center justify-center text-slate-950 shadow-md shadow-emerald-950/40">
-            <Leaf className="w-5 h-5 text-slate-950" />
-          </div>
+          <img
+            src="/logo.png"
+            alt="Tarno Jaya Farm"
+            className="w-10 h-10 rounded-full shadow-md shadow-emerald-950/40"
+          />
           <div>
             <h1 className="font-extrabold text-base tracking-tight text-white flex items-center gap-1.5">
               GREENHOUSE <span className="text-emerald-400 text-xs font-semibold">FINANCE PRO</span>

@@ -1,0 +1,14 @@
+{
+  "name": "Greenhouse Finance Pro — Tarno Jaya Farm",
+  "short_name": "GFP Tarno Jaya",
+  "description": "Manajemen keuangan, HPP, panen, stok, HR & payroll greenhouse melon premium.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#f8fafc",
+  "theme_color": "#065f46",
+  "icons": [
+    { "src": "/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

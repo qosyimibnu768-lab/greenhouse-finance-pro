@@ -155,9 +155,7 @@ export const MobileNavDrawer: React.FC<MobileNavDrawerProps> = ({
         {/* Header Drawer */}
         <div className="p-4 border-b border-slate-800 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-700 flex items-center justify-center font-black text-white shadow-md">
-              GH
-            </div>
+            <img src="/logo.png" alt="Tarno Jaya Farm" className="w-9 h-9 rounded-full shadow-md" />
             <div>
               <h2 className="font-extrabold text-sm text-white leading-tight">Greenhouse Finance Pro</h2>
               <p className="text-[10px] text-emerald-400 font-medium">Tarno Jaya Farm</p>
