@@ -260,7 +260,7 @@ export const ReportsPage: React.FC = () => {
             } else {
               investasiOtomasiSensor += amt;
             }
-          } else if (t.expenseGroup !== 'pembayaran-hutang') {
+          } else if (t.expenseGroup !== 'pembayaran-hutang' && t.expenseGroup !== 'pemberian-kasbon') {
             // Check if labor / salary
             const cat = (t.category || '').toLowerCase();
             const note = (t.note || '').toLowerCase();
@@ -743,7 +743,13 @@ export const ReportsPage: React.FC = () => {
 
       const includeLabor = db.payrollSettings?.includeLaborInHpp ?? true;
       const expenses = db.transactions.filter((t) => {
-        if (t.type !== 'pengeluaran' || t.expenseGroup === 'investasi') return false;
+        if (
+          t.type !== 'pengeluaran' ||
+          t.expenseGroup === 'investasi' ||
+          t.expenseGroup === 'pembayaran-hutang' ||
+          t.expenseGroup === 'pemberian-kasbon'
+        )
+          return false;
         if (t.cycleId === c.id) return true;
         if (
           includeLabor &&

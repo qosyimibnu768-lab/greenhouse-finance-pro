@@ -91,7 +91,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
 
       let biayaProduksi = 0;
       db.transactions
-        .filter((t) => t.cycleId === c.id && t.type === 'pengeluaran' && t.expenseGroup !== 'investasi')
+        .filter((t) => t.cycleId === c.id && t.type === 'pengeluaran' && t.expenseGroup !== 'investasi' && t.expenseGroup !== 'pembayaran-hutang' && t.expenseGroup !== 'pemberian-kasbon')
         .forEach((t) => {
           biayaProduksi += Number(t.amount) || 0;
         });

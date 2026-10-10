@@ -68,7 +68,13 @@ export const HppPerTanamanAnalysis: React.FC = () => {
 
       // Extract all transactions linked to this cycle
       const linkedTrx = db.transactions.filter((t) => {
-        if (t.type !== 'pengeluaran' || t.expenseGroup === 'investasi') return false;
+        if (
+          t.type !== 'pengeluaran' ||
+          t.expenseGroup === 'investasi' ||
+          t.expenseGroup === 'pembayaran-hutang' ||
+          t.expenseGroup === 'pemberian-kasbon'
+        )
+          return false;
         if (t.cycleId === c.id) return true;
         if (
           includeLabor &&

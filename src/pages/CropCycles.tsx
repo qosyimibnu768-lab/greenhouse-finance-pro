@@ -146,7 +146,13 @@ export const CropCyclesPage: React.FC = () => {
     const includeLabor = db.payrollSettings?.includeLaborInHpp ?? true;
 
     const linkedTrx = db.transactions.filter((t) => {
-      if (t.type !== 'pengeluaran' || t.expenseGroup === 'investasi') return false;
+      if (
+        t.type !== 'pengeluaran' ||
+        t.expenseGroup === 'investasi' ||
+        t.expenseGroup === 'pembayaran-hutang' ||
+        t.expenseGroup === 'pemberian-kasbon'
+      )
+        return false;
       if (t.cycleId === selectedCycle.id) return true;
       if (
         includeLabor &&

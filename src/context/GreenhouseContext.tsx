@@ -1213,6 +1213,28 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
         }
       : null;
 
+    // Kas bon / pinjaman yang diberikan pekerja (atau pihak lain): uang keluar dari kas.
+    // Ditandai group 'pemberian-kasbon' agar TIDAK dihitung sebagai biaya operasional di laporan.
+    const isCashAdvance = debtData.type === 'piutang' && !!debtData.givenToCash && amount > 0;
+    const advanceTrxId = isCashAdvance ? `TRX-ADV-${Date.now().toString().slice(-6)}` : undefined;
+    const advanceTrx: Transaction | null = isCashAdvance
+      ? {
+          id: advanceTrxId as string,
+          date: debtData.date,
+          type: 'pengeluaran',
+          expenseGroup: 'pemberian-kasbon',
+          category: 'Kas Bon Pekerja',
+          subcategory: debtData.counterparty,
+          amount,
+          paymentMethod: 'Tunai / Cash',
+          tunnel: 'Umum / Fasilitas',
+          note: `Pemberian kas bon untuk ${debtData.counterparty}${
+            debtData.description ? ` — ${debtData.description}` : ''
+          }`,
+          createdAt: new Date().toISOString(),
+        }
+      : null;
+
     const newDebt: DebtReceivable = {
       ...debtData,
       id,
@@ -1221,19 +1243,26 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       remainingAmount,
       status,
       receivedTransactionId: loanTrxId,
+      givenTransactionId: advanceTrxId,
     };
     const newDb = {
       ...dbRef.current,
       debts: [newDebt, ...(dbRef.current.debts || [])],
-      transactions: loanTrx
-        ? [loanTrx, ...(dbRef.current.transactions || [])]
-        : dbRef.current.transactions,
+      transactions: [
+        ...(advanceTrx ? [advanceTrx] : []),
+        ...(loanTrx ? [loanTrx] : []),
+        ...(dbRef.current.transactions || []),
+      ],
     };
     saveState(newDb);
     addToast({
       type: 'success',
       title: `${newDebt.type === 'hutang' ? 'Hutang' : 'Piutang'} Dicatat`,
-      message: isCashLoan ? `${newDebt.counterparty} • kas bertambah Rp${amount.toLocaleString('id-ID')}` : `${newDebt.counterparty}`,
+      message: isCashAdvance
+        ? `${newDebt.counterparty} • kas keluar Rp${amount.toLocaleString('id-ID')}`
+        : isCashLoan
+          ? `${newDebt.counterparty} • kas bertambah Rp${amount.toLocaleString('id-ID')}`
+          : `${newDebt.counterparty}`,
     });
     return true;
   };

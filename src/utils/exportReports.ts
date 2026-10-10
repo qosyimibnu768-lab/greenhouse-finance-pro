@@ -100,7 +100,7 @@ export const exportFinancialReportToCSV = (
   // Breakdown by subcategory
   const opexCategories: Record<string, number> = {};
   db.transactions
-    .filter((t) => t.type === 'pengeluaran' && t.expenseGroup !== 'investasi' && t.expenseGroup !== 'pembayaran-hutang')
+    .filter((t) => t.type === 'pengeluaran' && t.expenseGroup !== 'investasi' && t.expenseGroup !== 'pembayaran-hutang' && t.expenseGroup !== 'pemberian-kasbon')
     .forEach((t) => {
       const cat = t.category || 'Lain-lain';
       opexCategories[cat] = (opexCategories[cat] || 0) + (Number(t.amount) || 0);
@@ -139,7 +139,7 @@ export const exportFinancialReportToCSV = (
     const totalKg = harvests.reduce((s, h) => s + (Number(h.totalWeightKg) || 0), 0);
     const totalOmzet = harvests.reduce((s, h) => s + (Number(h.totalRevenue) || 0), 0);
     const expenses = db.transactions.filter(
-      (t) => t.cycleId === c.id && t.type === 'pengeluaran' && t.expenseGroup !== 'investasi' && t.expenseGroup !== 'pembayaran-hutang'
+      (t) => t.cycleId === c.id && t.type === 'pengeluaran' && t.expenseGroup !== 'investasi' && t.expenseGroup !== 'pembayaran-hutang' && t.expenseGroup !== 'pemberian-kasbon'
     );
     const totalBiaya = expenses.reduce((s, t) => s + (Number(t.amount) || 0), 0);
     const hpp = totalKg > 0 ? Math.round(totalBiaya / totalKg) : 0;
@@ -377,7 +377,7 @@ export const exportFinancialReportToPDF = (
   // Calculate expense categories
   const catBreakdown: Record<string, number> = {};
   db.transactions
-    .filter((t) => t.type === 'pengeluaran' && t.expenseGroup !== 'investasi' && t.expenseGroup !== 'pembayaran-hutang')
+    .filter((t) => t.type === 'pengeluaran' && t.expenseGroup !== 'investasi' && t.expenseGroup !== 'pembayaran-hutang' && t.expenseGroup !== 'pemberian-kasbon')
     .forEach((t) => {
       const cat = t.category || 'Lain-lain';
       catBreakdown[cat] = (catBreakdown[cat] || 0) + (Number(t.amount) || 0);
@@ -441,7 +441,7 @@ export const exportFinancialReportToPDF = (
     const totalKg = harvests.reduce((s, h) => s + (Number(h.totalWeightKg) || 0), 0);
     const totalOmzet = harvests.reduce((s, h) => s + (Number(h.totalRevenue) || 0), 0);
     const expenses = db.transactions.filter(
-      (t) => t.cycleId === c.id && t.type === 'pengeluaran' && t.expenseGroup !== 'investasi' && t.expenseGroup !== 'pembayaran-hutang'
+      (t) => t.cycleId === c.id && t.type === 'pengeluaran' && t.expenseGroup !== 'investasi' && t.expenseGroup !== 'pembayaran-hutang' && t.expenseGroup !== 'pemberian-kasbon'
     );
     const totalBiaya = expenses.reduce((s, t) => s + (Number(t.amount) || 0), 0);
     const hpp = totalKg > 0 ? Math.round(totalBiaya / totalKg) : 0;

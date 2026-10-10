@@ -1,9 +1,9 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useGreenhouse } from '../../context/GreenhouseContext';
 import { formatCurrency, formatDate, formatNumber } from '../../utils/formatters';
-import { buildConstructionBonHtml, buildConstructionSlipHtml, ConstructionSlipData, openPrintWindow } from '../../utils/slipRenderer';
+import { buildConstructionSlipHtml, buildKasbonSlipHtml, ConstructionSlipData, openPrintWindow } from '../../utils/slipRenderer';
 import { RegisterStaffModal } from '../HRPayroll/RegisterStaffModal';
-import { AttendanceRecord, Employee, Investment } from '../../types';
+import { AttendanceRecord, DebtReceivable, Employee, Investment } from '../../types';
 import {
   HardHat,
   Users,
@@ -26,7 +26,7 @@ import {
 const WAGE_KEYWORD_REGEX = /(^|[^a-zA-Z])(gaji|upah)/i;
 
 export const ConstructionHRPage: React.FC = () => {
-  const { db, addInvestment, bulkUpsertAttendance, updateEmployee, addToast } = useGreenhouse();
+  const { db, addInvestment, addDebt, payDebt, bulkUpsertAttendance, updateEmployee, addToast } = useGreenhouse();
 
   // ===== Data pekerja konstruksi =====
   const workers = useMemo(
@@ -181,6 +181,37 @@ export const ConstructionHRPage: React.FC = () => {
   const [paidResult, setPaidResult] = useState<ConstructionSlipData | null>(null);
   const [pendingWagePaid, setPendingWagePaid] = useState<{ ids: string[]; beforeCount: number } | null>(null);
 
+  // ===== Kas bon pekerja (gaji di muka) =====
+  const [isKasbonOpen, setIsKasbonOpen] = useState(false);
+  const [kasbonWorkerId, setKasbonWorkerId] = useState('');
+  const [kasbonDate, setKasbonDate] = useState(today);
+  const [kasbonAmount, setKasbonAmount] = useState('');
+  const [kasbonNote, setKasbonNote] = useState('');
+  const [kasbonResult, setKasbonResult] = useState<{
+    id: string;
+    workerName: string;
+    position: string;
+    amount: number;
+    remaining: number;
+    status: string;
+    note?: string;
+  } | null>(null);
+  const [deductKasbon, setDeductKasbon] = useState(false);
+
+  const kasbonDebts = (db.debts || []).filter((d) => d.isKasbon);
+  const kasbonOutstandingFor = (name: string) =>
+    kasbonDebts
+      .filter(
+        (d) =>
+          d.type === 'piutang' &&
+          d.status !== 'Lunas' &&
+          (d.counterparty || '').toLowerCase() === (name || '').toLowerCase()
+      )
+      .reduce((s, d) => s + (Number(d.remainingAmount) || 0), 0);
+  const totalKasbonOutstanding = kasbonDebts
+    .filter((d) => d.type === 'piutang' && d.status !== 'Lunas')
+    .reduce((s, d) => s + (Number(d.remainingAmount) || 0), 0);
+
   // Setelah investasi pembayaran benar-benar tersimpan ke state, tandai absensi sekaligus
   // (satu penyimpanan batch agar perubahan tidak saling menimpa / lost update).
   useEffect(() => {
@@ -194,6 +225,8 @@ export const ConstructionHRPage: React.FC = () => {
 
   const payWorker = workers.find((w) => w.id === payWorkerId) || null;
   const payUnpaidDays = payWorker ? unpaidDaysFor(payWorker.id, payDate) : 0;
+  const payKasbonOutstanding = payWorker ? kasbonOutstandingFor(payWorker.name) : 0;
+  const kasbonWorker = workers.find((w) => w.id === kasbonWorkerId) || null;
 
   const openPayModal = (w: Employee) => {
     const unpaid = unpaidDaysFor(w.id, today);
@@ -204,6 +237,7 @@ export const ConstructionHRPage: React.FC = () => {
     setPayNote('');
     setPayOvertimeHours('0');
     setPayOvertimeRate('');
+    setDeductKasbon(false);
     setMarkAttendance(true);
     setPaidResult(null);
   };
@@ -213,6 +247,7 @@ export const ConstructionHRPage: React.FC = () => {
     setPaidResult(null);
     setPayOvertimeHours('0');
     setPayOvertimeRate('');
+    setDeductKasbon(false);
   };
 
   const openPrint = (html: string) => {
@@ -257,6 +292,28 @@ export const ConstructionHRPage: React.FC = () => {
     });
     setIsPaying(false);
     if (!ok) return;
+
+    // Potong kas bon pekerja (jika dicentang). Pelunasan piutang ini otomatis
+    // membuat kas masuk penyeimbang sehingga kas keluar = upah − kas bon.
+    if (deductKasbon && payKasbonOutstanding > 0) {
+      let toDeduct = Math.min(payKasbonOutstanding, total);
+      const targets = kasbonDebts
+        .filter(
+          (d) =>
+            d.type === 'piutang' &&
+            d.status !== 'Lunas' &&
+            (d.counterparty || '').toLowerCase() === payWorker.name.toLowerCase()
+        )
+        .sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+      for (const target of targets) {
+        if (toDeduct <= 0) break;
+        const amt = Math.min(Number(target.remainingAmount) || 0, toDeduct);
+        if (amt > 0) {
+          await payDebt(target.id, amt, 'balance_only');
+          toDeduct -= amt;
+        }
+      }
+    }
 
     // Tandai absensi yang tercakup pembayaran ini sebagai sudah dibayar.
     // Dilakukan lewat efek setelah state investasi tersimpan (menghindari lost-update).
@@ -324,23 +381,61 @@ export const ConstructionHRPage: React.FC = () => {
     );
   };
 
-  const printHistoryBon = (inv: Investment) => {
-    const names = matchedWorkerNames(inv);
+  // ===== Kas bon pekerja =====
+  const openKasbonModal = () => {
+    setKasbonWorkerId(workers[0]?.id || '');
+    setKasbonDate(today);
+    setKasbonAmount('');
+    setKasbonNote('');
+    setKasbonResult(null);
+    setIsKasbonOpen(true);
+  };
+
+  const submitKasbon = async () => {
+    if (!kasbonWorker) {
+      addToast('Pilih pekerja terlebih dahulu', 'error');
+      return;
+    }
+    const amount = Math.round(Number(kasbonAmount) || 0);
+    if (amount <= 0) {
+      addToast('Jumlah kas bon harus lebih dari 0', 'error');
+      return;
+    }
+    const ok = await addDebt({
+      type: 'piutang',
+      counterparty: kasbonWorker.name,
+      date: kasbonDate,
+      dueDate: kasbonDate,
+      amount,
+      paidAmount: 0,
+      description: `Kas bon upah${kasbonNote.trim() ? ` — ${kasbonNote.trim()}` : ''}`,
+      givenToCash: true,
+      isKasbon: true,
+    });
+    if (!ok) return;
+    setKasbonResult({
+      id: `KASBON-${Date.now().toString().slice(-6)}`,
+      workerName: kasbonWorker.name,
+      position: kasbonWorker.position || '',
+      amount,
+      remaining: amount,
+      status: 'Belum lunas',
+      note: kasbonNote.trim() || undefined,
+    });
+  };
+
+  const printKasbonDebt = (d: DebtReceivable) => {
+    const w = workers.find((x) => (x.name || '').toLowerCase() === (d.counterparty || '').toLowerCase());
     openPrint(
-      buildConstructionBonHtml({
-        id: String(inv.id || '').slice(0, 22),
-        date: inv.date,
-        workerName: names.length > 0 ? names.join(', ') : inv.supplier || '-',
-        position: '-',
-        days: Number(inv.quantity) || 0,
-        unit: inv.unit || 'Hari',
-        rate: Number(inv.unitPrice) || 0,
-        total: Number(inv.totalAmount) || 0,
-        overtimeAmount: Math.max(
-          0,
-          Math.round((Number(inv.totalAmount) || 0) - (Number(inv.quantity) || 0) * (Number(inv.unitPrice) || 0))
-        ),
-        note: inv.notes,
+      buildKasbonSlipHtml({
+        id: String(d.id || '').slice(0, 24),
+        date: d.date,
+        workerName: d.counterparty,
+        position: w?.position || '',
+        amount: Number(d.amount) || 0,
+        remaining: Number(d.remainingAmount) || 0,
+        status: d.status,
+        note: d.description,
       })
     );
   };
@@ -688,26 +783,96 @@ export const ConstructionHRPage: React.FC = () => {
                         {names.length > 0 ? names.join(', ') : <span className="text-slate-400">-</span>}
                       </td>
                       <td className="p-2 text-center">
-                        <div className="flex items-center justify-center gap-1">
-                          <button
-                            onClick={() => printHistoryItem(inv)}
-                            title="Cetak nota upah"
-                            className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:text-emerald-700 hover:border-emerald-300 transition cursor-pointer"
-                          >
-                            <Printer className="w-3.5 h-3.5" />
-                          </button>
-                          <button
-                            onClick={() => printHistoryBon(inv)}
-                            title="Cetak bon upah"
-                            className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:text-amber-700 hover:border-amber-300 transition cursor-pointer"
-                          >
-                            <Receipt className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
+                        <button
+                          onClick={() => printHistoryItem(inv)}
+                          title="Cetak nota upah"
+                          className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:text-emerald-700 hover:border-emerald-300 transition cursor-pointer"
+                        >
+                          <Printer className="w-3.5 h-3.5" />
+                        </button>
                       </td>
                     </tr>
                   );
                 })}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </div>
+
+      {/* ===== Kas Bon Pekerja ===== */}
+      <div className="bg-white rounded-3xl border border-slate-200 shadow-xs p-5 space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h3 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
+              <Receipt className="w-4 h-4 text-sky-600" />
+              <span>Kas Bon Pekerja (Gaji di Muka)</span>
+            </h3>
+            <p className="text-[11px] text-slate-500 mt-0.5">
+              Pekerja minta gaji dulu / hutang dulu — kas keluar sekarang, dipotong otomatis saat pembayaran upah
+              berikutnya. Total belum dipotong: <b>{formatCurrency(totalKasbonOutstanding)}</b>
+            </p>
+          </div>
+          <button
+            onClick={openKasbonModal}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold shadow-sm transition cursor-pointer shrink-0"
+          >
+            <Plus className="w-3.5 h-3.5" />
+            <span>Beri Kas Bon</span>
+          </button>
+        </div>
+
+        {kasbonDebts.length === 0 ? (
+          <p className="text-xs text-slate-500 py-3 text-center">Belum ada kas bon pekerja.</p>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-xs">
+              <thead>
+                <tr className="border-b border-slate-200 text-slate-500">
+                  <th className="text-left p-2 font-bold">Tanggal</th>
+                  <th className="text-left p-2 font-bold">Pekerja</th>
+                  <th className="text-right p-2 font-bold">Kas Bon</th>
+                  <th className="text-right p-2 font-bold">Sisa</th>
+                  <th className="text-left p-2 font-bold">Status</th>
+                  <th className="text-center p-2 font-bold">Slip</th>
+                </tr>
+              </thead>
+              <tbody className="font-mono">
+                {kasbonDebts
+                  .slice()
+                  .sort((a, b) => (b.date || '').localeCompare(a.date || ''))
+                  .map((d) => (
+                    <tr key={d.id} className="border-b border-slate-100">
+                      <td className="p-2 whitespace-nowrap">{formatDate(d.date)}</td>
+                      <td className="p-2 font-sans font-semibold text-slate-800">{d.counterparty}</td>
+                      <td className="p-2 text-right whitespace-nowrap">{formatCurrency(d.amount)}</td>
+                      <td className="p-2 text-right whitespace-nowrap font-bold text-slate-900">
+                        {formatCurrency(d.remainingAmount)}
+                      </td>
+                      <td className="p-2 font-sans">
+                        <span
+                          className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                            d.status === 'Lunas'
+                              ? 'bg-emerald-100 text-emerald-800'
+                              : d.status === 'Sebagian'
+                                ? 'bg-amber-100 text-amber-800'
+                                : 'bg-slate-100 text-slate-700'
+                          }`}
+                        >
+                          {d.status}
+                        </span>
+                      </td>
+                      <td className="p-2 text-center">
+                        <button
+                          onClick={() => printKasbonDebt(d)}
+                          title="Cetak slip kas bon"
+                          className="p-1.5 rounded-lg border border-slate-200 text-slate-500 hover:text-sky-700 hover:border-sky-300 transition cursor-pointer"
+                        >
+                          <Printer className="w-3.5 h-3.5" />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
               </tbody>
             </table>
           </div>
@@ -775,13 +940,6 @@ export const ConstructionHRPage: React.FC = () => {
                   >
                     <Printer className="w-3.5 h-3.5" />
                     <span>Cetak Nota Upah</span>
-                  </button>
-                  <button
-                    onClick={() => openPrint(buildConstructionBonHtml(paidResult))}
-                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-amber-500 hover:bg-amber-400 text-white font-bold transition cursor-pointer"
-                  >
-                    <Receipt className="w-3.5 h-3.5" />
-                    <span>Cetak Bon</span>
                   </button>
                   <button
                     onClick={closePayModal}
@@ -888,6 +1046,21 @@ export const ConstructionHRPage: React.FC = () => {
                   </span>
                 </label>
 
+                {payKasbonOutstanding > 0 && (
+                  <label className="flex items-center gap-2 text-[11px] text-sky-900 bg-sky-50 border border-sky-200 rounded-xl px-3 py-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={deductKasbon}
+                      onChange={(e) => setDeductKasbon(e.target.checked)}
+                      className="accent-sky-600"
+                    />
+                    <span>
+                      Potong kas bon pekerja <b>{formatCurrency(payKasbonOutstanding)}</b> dari upah ini (sisa kas bon
+                      otomatis berkurang).
+                    </span>
+                  </label>
+                )}
+
                 <label className="flex items-center gap-2 text-[11px] text-emerald-800 bg-emerald-50 border border-emerald-200 rounded-xl px-3 py-2">
                   <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />
                   <span>
@@ -908,6 +1081,136 @@ export const ConstructionHRPage: React.FC = () => {
                     className="px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold shadow-sm transition disabled:opacity-60 cursor-pointer"
                   >
                     {isPaying ? 'Menyimpan...' : 'Bayar & Catat'}
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* ===== Modal Kas Bon ===== */}
+      {isKasbonOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden border border-sky-100">
+            <div className="px-5 py-4 bg-gradient-to-r from-sky-600 to-cyan-700 text-white flex items-center justify-between">
+              <div className="flex items-center gap-2.5">
+                <Receipt className="w-5 h-5" />
+                <div>
+                  <h3 className="text-sm font-extrabold">
+                    {kasbonResult ? 'Kas Bon Tercatat' : 'Beri Kas Bon Pekerja'}
+                  </h3>
+                  <p className="text-[11px] text-sky-100">
+                    {kasbonResult
+                      ? kasbonResult.workerName
+                      : kasbonWorker
+                        ? `${kasbonWorker.name} · ${kasbonWorker.position}`
+                        : 'Gaji di muka (hutang pekerja)'}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setIsKasbonOpen(false)}
+                className="p-1.5 rounded-lg hover:bg-white/10 transition cursor-pointer"
+                title="Tutup"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {kasbonResult ? (
+              <div className="p-5 space-y-4 text-xs">
+                <div className="p-4 rounded-2xl bg-sky-50 border border-sky-200 text-sky-900 flex items-start gap-3">
+                  <CheckCircle2 className="w-5 h-5 mt-0.5 shrink-0" />
+                  <div>
+                    <p className="font-bold">Kas bon tercatat (kas keluar)</p>
+                    <p className="mt-0.5">
+                      {kasbonResult.workerName} · <b>{formatCurrency(kasbonResult.amount)}</b> — otomatis dipotong saat
+                      pembayaran upah berikutnya.
+                    </p>
+                  </div>
+                </div>
+                <div className="flex items-center justify-end gap-2">
+                  <button
+                    onClick={() => openPrint(buildKasbonSlipHtml({ ...kasbonResult, date: kasbonDate }))}
+                    className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white font-bold transition cursor-pointer"
+                  >
+                    <Printer className="w-3.5 h-3.5" />
+                    <span>Cetak Slip Kas Bon</span>
+                  </button>
+                  <button
+                    onClick={() => setIsKasbonOpen(false)}
+                    className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 font-semibold hover:bg-slate-50 transition cursor-pointer"
+                  >
+                    Selesai
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <div className="p-5 space-y-4 text-xs">
+                <div>
+                  <label className="font-semibold text-slate-700 block mb-1">Pekerja</label>
+                  <select
+                    value={kasbonWorkerId}
+                    onChange={(e) => setKasbonWorkerId(e.target.value)}
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:border-sky-500 outline-none bg-white"
+                  >
+                    {workers.map((w) => (
+                      <option key={w.id} value={w.id}>
+                        {w.name} — {w.position}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="font-semibold text-slate-700 block mb-1">Tanggal</label>
+                    <input
+                      type="date"
+                      value={kasbonDate}
+                      onChange={(e) => setKasbonDate(e.target.value)}
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:border-sky-500 outline-none font-mono"
+                    />
+                  </div>
+                  <div>
+                    <label className="font-semibold text-slate-700 block mb-1">Jumlah Kas Bon (Rp)</label>
+                    <input
+                      type="number"
+                      value={kasbonAmount}
+                      onChange={(e) => setKasbonAmount(e.target.value)}
+                      placeholder="mis. 200000"
+                      className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:border-sky-500 outline-none font-mono"
+                    />
+                  </div>
+                </div>
+                <div>
+                  <label className="font-semibold text-slate-700 block mb-1">Keterangan (opsional)</label>
+                  <input
+                    type="text"
+                    value={kasbonNote}
+                    onChange={(e) => setKasbonNote(e.target.value)}
+                    placeholder="mis. minta gaji dulu untuk kebutuhan mendesak"
+                    className="w-full px-3 py-2 rounded-xl border border-slate-200 focus:border-sky-500 outline-none"
+                  />
+                </div>
+                {kasbonWorker && kasbonOutstandingFor(kasbonWorker.name) > 0 && (
+                  <p className="text-[11px] text-amber-800 bg-amber-50 border border-amber-200 rounded-xl px-3 py-2">
+                    Kas bon {kasbonWorker.name} yang belum dipotong:{' '}
+                    <b>{formatCurrency(kasbonOutstandingFor(kasbonWorker.name))}</b>
+                  </p>
+                )}
+                <div className="flex items-center justify-end gap-2 pt-1">
+                  <button
+                    onClick={() => setIsKasbonOpen(false)}
+                    className="px-4 py-2 rounded-xl border border-slate-200 text-slate-600 font-semibold hover:bg-slate-50 transition cursor-pointer"
+                  >
+                    Batal
+                  </button>
+                  <button
+                    onClick={submitKasbon}
+                    className="px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white font-bold shadow-sm transition cursor-pointer"
+                  >
+                    Catat Kas Bon
                   </button>
                 </div>
               </div>

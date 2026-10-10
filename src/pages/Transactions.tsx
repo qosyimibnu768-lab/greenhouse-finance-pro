@@ -58,7 +58,7 @@ export const TransactionsPage: React.FC<TransactionsPageProps> = ({
       // Type filter
       if (typeFilter === 'pemasukan' && t.type !== 'pemasukan') return false;
       if (typeFilter === 'pengeluaran' && t.type !== 'pengeluaran') return false;
-      if (typeFilter === 'operasional' && (t.type !== 'pengeluaran' || t.expenseGroup === 'investasi')) return false;
+      if (typeFilter === 'operasional' && (t.type !== 'pengeluaran' || t.expenseGroup === 'investasi' || t.expenseGroup === 'pembayaran-hutang' || t.expenseGroup === 'pemberian-kasbon')) return false;
       if (typeFilter === 'investasi' && t.expenseGroup !== 'investasi') return false;
       if (typeFilter === 'payroll' && t.category !== 'Gaji Karyawan / Payroll' && !t.id.startsWith('TRX-PAY-')) return false;
 

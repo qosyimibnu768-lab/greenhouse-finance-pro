@@ -344,55 +344,59 @@ export function buildConstructionSlipHtml(d: ConstructionSlipData): string {
   return shell(`Nota Upah - ${d.workerName}`, body);
 }
 
-/** Bon upah ringkas — bukti pembayaran siap tanda tangan penerima & pembayar. */
-export function buildConstructionBonHtml(d: ConstructionSlipData): string {
-  const baseAmount = Math.round((Number(d.days) || 0) * (Number(d.rate) || 0));
-  const overtimeHours = Number(d.overtimeHours) || 0;
-  const overtimeAmount = Math.round(
-    Number(d.overtimeAmount ?? 0) || overtimeHours * (Number(d.overtimeRate) || 0)
-  );
-  const overtimeRate =
-    Number(d.overtimeRate) || (overtimeHours > 0 && overtimeAmount > 0 ? Math.round(overtimeAmount / overtimeHours) : 0);
-  const total = Math.round(Number(d.total) || baseAmount + overtimeAmount);
+// ===== Data slip kas bon pekerja =====
+export interface KasbonSlipData {
+  id: string;
+  date: string;
+  workerName: string;
+  position?: string;
+  amount: number;
+  remaining?: number;
+  status?: string;
+  note?: string;
+}
+
+/** Slip kas bon pekerja (gaji di muka) — hanya pihak pembayar/owner yang menandatangani. */
+export function buildKasbonSlipHtml(k: KasbonSlipData): string {
+  const amount = Math.round(Number(k.amount) || 0);
+  const remaining = Math.round(Number(k.remaining ?? amount) || 0);
+  const status = k.status || (remaining === 0 ? 'Lunas' : 'Belum lunas');
 
   const body = `
-  ${headerBand('BON UPAH', d.id, `Tanggal: ${formatDate(d.date)}`, { text: 'KONSTRUKSI', color: '#f59e0b' })}
+  ${headerBand('SLIP KAS BON', k.id, `Tanggal: ${formatDate(k.date)}`, { text: 'KAS BON PEKERJA', color: '#0ea5e9' })}
   <div class="body">
-    <div class="card">
-      <h3>DATA PEMBAYARAN</h3>
-      <div class="kv"><span class="k">Nama Pekerja</span><span class="v">${d.workerName}</span></div>
-      <div class="kv"><span class="k">Jabatan</span><span class="v">${d.position || '-'}</span></div>
-      <div class="kv"><span class="k">Upah Harian</span><span class="v">${formatNumber(d.days)} ${d.unit} × ${formatCurrency(d.rate)} = ${formatCurrency(baseAmount)}</span></div>
-      ${
-        overtimeAmount > 0
-          ? `<div class="kv"><span class="k">Lembur</span><span class="v">${overtimeHours > 0 ? `${formatNumber(overtimeHours)} jam × ${formatCurrency(overtimeRate)} = ` : ''}${formatCurrency(overtimeAmount)}</span></div>`
-          : ''
-      }
-      ${d.note ? `<div class="kv"><span class="k">Keterangan</span><span class="v">${d.note}</span></div>` : ''}
+    <div class="grid2">
+      <div class="card">
+        <h3>DATA PEKERJA</h3>
+        <div class="kv"><span class="k">Nama</span><span class="v">${k.workerName}</span></div>
+        <div class="kv"><span class="k">Jabatan</span><span class="v">${k.position || '-'}</span></div>
+        <div class="kv"><span class="k">Area Kerja</span><span class="v">Konstruksi / Pembangunan</span></div>
+      </div>
+      <div class="card">
+        <h3>RINCIAN KAS BON</h3>
+        <div class="kv"><span class="k">Tanggal</span><span class="v">${formatDate(k.date)}</span></div>
+        <div class="kv"><span class="k">Jumlah Kas Bon</span><span class="v">${formatCurrency(amount)}</span></div>
+        <div class="kv"><span class="k">Sisa Belum Dipotong</span><span class="v">${formatCurrency(remaining)}</span></div>
+        <div class="kv"><span class="k">Status</span><span class="v">${status}</span></div>
+        ${k.note ? `<div class="kv"><span class="k">Keterangan</span><span class="v">${k.note}</span></div>` : ''}
+      </div>
     </div>
-    <div class="totbox" style="margin-top:14px">
-      <div class="lbl">JUMLAH DITERIMA</div>
+    <div class="totbox">
+      <div class="lbl">JUMLAH KAS BON</div>
       <div>
-        <div class="amt">${formatCurrency(total)}</div>
+        <div class="amt">${formatCurrency(amount)}</div>
         <div class="sub">${SLIP_COMPANY.farm}</div>
       </div>
     </div>
-    <div class="terbilang">Terbilang: <b>${terbilang(total)}</b></div>
-    <div class="sign">
-      <div>
-        <div class="role">Penerima,</div>
-        <div class="who">${d.workerName}</div>
-      </div>
-      <div>
-        <div class="role">Pembayar / Owner,</div>
-        <div class="who">${SLIP_COMPANY.ownerName}</div>
-        <div class="role">${SLIP_COMPANY.farm}</div>
-      </div>
+    <div class="terbilang">Terbilang: <b>${terbilang(amount)}</b></div>
+    <div class="note" style="color:#0c4a6e;background:#f0f9ff;border-color:#bae6fd">
+      <b>Catatan:</b> kas bon ini diperhitungkan (dipotong) pada pembayaran upah pekerja berikutnya.
     </div>
-    ${footer(d.id)}
+    ${ownerSignature()}
+    ${footer(k.id)}
   </div>`;
 
-  return shell(`Bon Upah - ${d.workerName}`, body);
+  return shell(`Slip Kas Bon - ${k.workerName}`, body);
 }
 
 /** Buka jendela cetak dengan dokumen nota. Mengembalikan false bila popup diblokir. */

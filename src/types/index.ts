@@ -1,5 +1,5 @@
 export type TransactionType = 'pemasukan' | 'pengeluaran';
-export type ExpenseGroup = 'operasional' | 'investasi' | 'pembayaran-hutang';
+export type ExpenseGroup = 'operasional' | 'investasi' | 'pembayaran-hutang' | 'pemberian-kasbon';
 
 export interface Tunnel {
   id: string; // e.g. 'T1', 'T2', 'TUNNEL-xxx'
@@ -164,6 +164,12 @@ export interface DebtReceivable {
   receivedToCash?: boolean;
   /** ID transaksi kas penerimaan pinjaman */
   receivedTransactionId?: string;
+  /** Piutang yang uangnya keluar dari kas saat dicatat (mis. kas bon pekerja) */
+  givenToCash?: boolean;
+  /** ID transaksi kas pemberian kas bon */
+  givenTransactionId?: string;
+  /** Penanda kas bon pekerja (modul HR Konstruksi) */
+  isKasbon?: boolean;
 }
 
 export interface FinancialMetrics {
