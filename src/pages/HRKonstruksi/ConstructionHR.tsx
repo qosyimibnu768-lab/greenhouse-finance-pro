@@ -21,6 +21,9 @@ import {
   ClipboardList,
 } from 'lucide-react';
 
+/** Kata "gaji"/"upah" sebagai KATA UTUH — "Kikir gergaji" tidak ikut tertangkap. */
+const WAGE_KEYWORD_REGEX = /(^|[^a-zA-Z])(gaji|upah)/i;
+
 export const ConstructionHRPage: React.FC = () => {
   const { db, addInvestment, bulkUpsertAttendance, updateEmployee, addToast } = useGreenhouse();
 
@@ -34,7 +37,7 @@ export const ConstructionHRPage: React.FC = () => {
   // ===== Catatan upah (histori Investasi) =====
   const wageItems = useMemo(() => {
     return (db.investments || [])
-      .filter((i) => /gaji|upah/i.test(`${i.itemName || ''} ${i.notes || ''}`))
+      .filter((i) => WAGE_KEYWORD_REGEX.test(`${i.itemName || ''} ${i.notes || ''}`))
       .sort((a, b) => (b.date || '').localeCompare(a.date || ''));
   }, [db.investments]);
 
