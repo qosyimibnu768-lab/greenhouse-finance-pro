@@ -20,6 +20,9 @@ import {
   Check,
   ClipboardList,
   Receipt,
+  Eye,
+  Search,
+  Download,
 } from 'lucide-react';
 
 /** Kata "gaji"/"upah" sebagai KATA UTUH — "Kikir gergaji" tidak ikut tertangkap. */
@@ -197,6 +200,9 @@ export const ConstructionHRPage: React.FC = () => {
     note?: string;
   } | null>(null);
   const [deductKasbon, setDeductKasbon] = useState(false);
+  const [detailWorkerId, setDetailWorkerId] = useState<string | null>(null);
+  const [wageMonthFilter, setWageMonthFilter] = useState<string>('all');
+  const [workerQuery, setWorkerQuery] = useState('');
 
   const kasbonDebts = (db.debts || []).filter((d) => d.isKasbon);
   const kasbonOutstandingFor = (name: string) =>
@@ -211,6 +217,63 @@ export const ConstructionHRPage: React.FC = () => {
   const totalKasbonOutstanding = kasbonDebts
     .filter((d) => d.type === 'piutang' && d.status !== 'Lunas')
     .reduce((s, d) => s + (Number(d.remainingAmount) || 0), 0);
+
+  const detailWorker = workers.find((w) => w.id === detailWorkerId) || null;
+
+  const monthLabel = (key: string) => {
+    if (!key) return '-';
+    try {
+      return new Date(`${key}-01`).toLocaleDateString('id-ID', { month: 'long', year: 'numeric' });
+    } catch {
+      return key;
+    }
+  };
+
+  const monthOptions = useMemo(() => {
+    const set = new Set<string>();
+    wageItems.forEach((i) => {
+      const m = (i.date || '').slice(0, 7);
+      if (m) set.add(m);
+    });
+    return Array.from(set).sort((a, b) => b.localeCompare(a));
+  }, [wageItems]);
+
+  const filteredWageItems = useMemo(
+    () => (wageMonthFilter === 'all' ? wageItems : wageItems.filter((i) => (i.date || '').startsWith(wageMonthFilter))),
+    [wageItems, wageMonthFilter]
+  );
+  const filteredWageTotal = filteredWageItems.reduce((s, i) => s + (Number(i.totalAmount) || 0), 0);
+
+  const filteredRecap = visibleRecap.filter(({ worker: w }) => {
+    const q = workerQuery.trim().toLowerCase();
+    if (!q) return true;
+    return (w.name || '').toLowerCase().includes(q) || (w.position || '').toLowerCase().includes(q);
+  });
+
+  const detailStats = useMemo(() => {
+    if (!detailWorker) return null;
+    const name = (detailWorker.name || '').toLowerCase();
+    const payments = wageItems.filter((i) => `${i.itemName || ''} ${i.notes || ''}`.toLowerCase().includes(name));
+    const monthKey = (attDate || today).slice(0, 7);
+    const atts = (db.attendances || []).filter(
+      (a) => a.employeeId === detailWorker.id && (a.date || '').startsWith(monthKey)
+    );
+    const kasbons = kasbonDebts.filter(
+      (d) => d.type === 'piutang' && (d.counterparty || '').toLowerCase() === name && d.status !== 'Lunas'
+    );
+    return {
+      payments,
+      totalEarned: payments.reduce((s, i) => s + (Number(i.totalAmount) || 0), 0),
+      monthKey,
+      hadir: atts.filter((a) => a.status === 'Hadir').length,
+      half: atts.filter((a) => a.status === 'Setengah Hari').length,
+      alpa: atts.filter((a) => (a.status as string) === 'Alpa' || a.status === 'Alpha').length,
+      kasbons,
+      kasbonTotal: kasbons.reduce((s, d) => s + (Number(d.remainingAmount) || 0), 0),
+      unpaidDays: unpaidDaysFor(detailWorker.id, today),
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [detailWorker, wageItems, db.attendances, kasbonDebts, attDate, today]);
 
   // Setelah investasi pembayaran benar-benar tersimpan ke state, tandai absensi sekaligus
   // (satu penyimpanan batch agar perubahan tidak saling menimpa / lost update).
@@ -382,8 +445,8 @@ export const ConstructionHRPage: React.FC = () => {
   };
 
   // ===== Kas bon pekerja =====
-  const openKasbonModal = () => {
-    setKasbonWorkerId(workers[0]?.id || '');
+  const openKasbonModal = (workerId?: string) => {
+    setKasbonWorkerId(workerId || workers[0]?.id || '');
     setKasbonDate(today);
     setKasbonAmount('');
     setKasbonNote('');
@@ -438,6 +501,58 @@ export const ConstructionHRPage: React.FC = () => {
         note: d.description,
       })
     );
+  };
+
+  // ===== Ekspor CSV =====
+  const downloadCsv = (filename: string, rows: (string | number)[][]) => {
+    const csv = rows
+      .map((r) => r.map((c) => `"${String(c ?? '').replace(/"/g, '""')}"`).join(','))
+      .join('\r\n');
+    const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
+
+  const exportWageHistoryCsv = () => {
+    const rows: (string | number)[][] = [
+      ['GREENHOUSE FINANCE PRO — TARNO JAYA FARM'],
+      ['RIWAYAT PEMBAYARAN UPAH KONSTRUKSI'],
+      ['Diekspor', new Date().toLocaleString('id-ID')],
+      ['Periode', wageMonthFilter === 'all' ? 'Semua Bulan' : monthLabel(wageMonthFilter)],
+      [],
+      ['Tanggal', 'Pekerja', 'Jenis Upah', 'Volume', 'Tarif', 'Total', 'Catatan'],
+    ];
+    filteredWageItems.forEach((i) => {
+      rows.push([
+        i.date,
+        matchedWorkerNames(i).join(', ') || i.supplier || '-',
+        i.itemName || '',
+        `${formatNumber(Number(i.quantity) || 0)} ${i.unit || ''}`,
+        Number(i.unitPrice) || 0,
+        Number(i.totalAmount) || 0,
+        i.notes || '',
+      ]);
+    });
+    rows.push([], ['TOTAL', '', '', '', '', filteredWageTotal, '']);
+    downloadCsv(`riwayat-upah-konstruksi-${new Date().toISOString().slice(0, 10)}.csv`, rows);
+  };
+
+  const exportWageRecapCsv = () => {
+    const rows: (string | number)[][] = [
+      ['GREENHOUSE FINANCE PRO — TARNO JAYA FARM'],
+      ['REKAP UPAH PER PEKERJA KONSTRUKSI'],
+      ['Diekspor', new Date().toLocaleString('id-ID')],
+      [],
+      ['Pekerja', 'Jabatan', 'Jumlah Pembayaran', 'Total Upah Diterima', 'Pembayaran Terakhir', 'Kas Bon Belum Dipotong'],
+    ];
+    recap.forEach(({ worker: w, total, entries, lastDate }) => {
+      rows.push([w.name, w.position || '', entries, total, lastDate || '-', kasbonOutstandingFor(w.name)]);
+    });
+    downloadCsv(`rekap-upah-konstruksi-${new Date().toISOString().slice(0, 10)}.csv`, rows);
   };
 
   return (
@@ -616,12 +731,23 @@ export const ConstructionHRPage: React.FC = () => {
 
       {/* ===== Daftar Pekerja ===== */}
       <div className="bg-white rounded-3xl border border-slate-200 shadow-xs p-5 space-y-4">
-        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <h3 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
             <Users className="w-4 h-4 text-amber-600" />
             <span>Daftar Pekerja Konstruksi</span>
           </h3>
-          <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-2">
+            <div className="relative">
+              <Search className="w-3.5 h-3.5 text-slate-400 absolute left-3 top-1/2 -translate-y-1/2" />
+              <input
+                type="text"
+                value={workerQuery}
+                onChange={(e) => setWorkerQuery(e.target.value)}
+                placeholder="Cari nama / jabatan..."
+                className="pl-8 pr-3 py-2 rounded-xl border border-slate-200 text-xs focus:border-amber-500 outline-none w-full sm:w-44"
+              />
+            </div>
+            <div className="flex items-center gap-1 p-1 bg-slate-100 rounded-xl">
             {([
               { key: 'all', label: `Semua (${workers.length})` },
               { key: 'active', label: `Aktif (${activeWorkers.length})` },
@@ -637,16 +763,17 @@ export const ConstructionHRPage: React.FC = () => {
                 {f.label}
               </button>
             ))}
+            </div>
           </div>
         </div>
 
-        {visibleRecap.length === 0 ? (
+        {filteredRecap.length === 0 ? (
           <p className="text-xs text-slate-500 py-4 text-center">
-            Tidak ada pekerja pada filter ini. Klik <strong>Tambah Pekerja</strong> untuk mendaftarkan tukang/kuli.
+            Tidak ada pekerja yang cocok. Klik <strong>Tambah Pekerja</strong> untuk mendaftarkan tukang/kuli.
           </p>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
-            {visibleRecap.map(({ worker: w, total, entries, lastDate }) => (
+            {filteredRecap.map(({ worker: w, total, entries, lastDate }) => (
               <div
                 key={w.id}
                 className={`p-4 rounded-2xl border shadow-xs space-y-3 ${
@@ -699,6 +826,12 @@ export const ConstructionHRPage: React.FC = () => {
                       {formatNumber(unpaidDaysFor(w.id, today))} hari belum dibayar
                     </span>
                   </div>
+                  {kasbonOutstandingFor(w.name) > 0 && (
+                    <div className="flex justify-between text-sky-700 font-semibold">
+                      <span>Kas bon belum dipotong</span>
+                      <span className="font-mono">{formatCurrency(kasbonOutstandingFor(w.name))}</span>
+                    </div>
+                  )}
                 </div>
 
                 <div className="flex items-center gap-2 pt-1">
@@ -708,6 +841,13 @@ export const ConstructionHRPage: React.FC = () => {
                   >
                     <Wallet className="w-3.5 h-3.5" />
                     <span>Bayar Upah</span>
+                  </button>
+                  <button
+                    onClick={() => setDetailWorkerId(w.id)}
+                    title="Detail pekerja"
+                    className="p-2 rounded-xl border border-slate-200 text-slate-500 hover:text-sky-700 hover:bg-white transition cursor-pointer"
+                  >
+                    <Eye className="w-3.5 h-3.5" />
                   </button>
                   <button
                     onClick={() => toggleWorkerStatus(w)}
@@ -739,18 +879,52 @@ export const ConstructionHRPage: React.FC = () => {
 
       {/* ===== Riwayat Pembayaran ===== */}
       <div className="bg-white rounded-3xl border border-slate-200 shadow-xs p-5 space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
-            <Wallet className="w-4 h-4 text-emerald-600" />
-            <span>Riwayat Pembayaran Upah</span>
-          </h3>
-          <span className="text-[11px] text-slate-500">
-            {wageItems.length} catatan · total {formatCurrency(totalPaid)}
-          </span>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div>
+            <h3 className="text-sm font-extrabold text-slate-900 flex items-center gap-2">
+              <Wallet className="w-4 h-4 text-emerald-600" />
+              <span>Riwayat Pembayaran Upah</span>
+            </h3>
+            <span className="text-[11px] text-slate-500">
+              {filteredWageItems.length} catatan · total <b>{formatCurrency(filteredWageTotal)}</b>
+            </span>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            <select
+              value={wageMonthFilter}
+              onChange={(e) => setWageMonthFilter(e.target.value)}
+              className="px-3 py-2 rounded-xl border border-slate-200 text-xs font-semibold bg-white focus:border-emerald-500 outline-none"
+            >
+              <option value="all">Semua Bulan</option>
+              {monthOptions.map((m) => (
+                <option key={m} value={m}>
+                  {monthLabel(m)}
+                </option>
+              ))}
+            </select>
+            <button
+              onClick={exportWageHistoryCsv}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 text-slate-600 text-[11px] font-bold hover:bg-slate-50 transition cursor-pointer"
+              title="Unduh riwayat upah (CSV)"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Riwayat</span>
+            </button>
+            <button
+              onClick={exportWageRecapCsv}
+              className="flex items-center gap-1.5 px-3 py-2 rounded-xl border border-slate-200 text-slate-600 text-[11px] font-bold hover:bg-slate-50 transition cursor-pointer"
+              title="Unduh rekap per pekerja (CSV)"
+            >
+              <Download className="w-3.5 h-3.5" />
+              <span>Rekap</span>
+            </button>
+          </div>
         </div>
 
-        {wageItems.length === 0 ? (
-          <p className="text-xs text-slate-500 py-4 text-center">Belum ada catatan pembayaran upah.</p>
+        {filteredWageItems.length === 0 ? (
+          <p className="text-xs text-slate-500 py-4 text-center">
+            {wageMonthFilter === 'all' ? 'Belum ada catatan pembayaran upah.' : 'Tidak ada pembayaran pada bulan ini.'}
+          </p>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full text-xs">
@@ -766,7 +940,7 @@ export const ConstructionHRPage: React.FC = () => {
                 </tr>
               </thead>
               <tbody className="font-mono">
-                {wageItems.map((inv) => {
+                {filteredWageItems.map((inv) => {
                   const names = matchedWorkerNames(inv);
                   return (
                     <tr key={inv.id} className="border-b border-slate-100">
@@ -814,7 +988,7 @@ export const ConstructionHRPage: React.FC = () => {
             </p>
           </div>
           <button
-            onClick={openKasbonModal}
+            onClick={() => openKasbonModal()}
             className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-sky-600 hover:bg-sky-500 text-white text-xs font-bold shadow-sm transition cursor-pointer shrink-0"
           >
             <Plus className="w-3.5 h-3.5" />
@@ -1215,6 +1389,154 @@ export const ConstructionHRPage: React.FC = () => {
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      )}
+
+      {/* ===== Modal Detail Pekerja ===== */}
+      {detailWorker && detailStats && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full overflow-hidden border border-slate-200 my-6">
+            <div className="px-5 py-4 bg-gradient-to-r from-slate-900 via-emerald-950 to-slate-900 text-white flex items-center justify-between">
+              <div className="flex items-center gap-3 min-w-0">
+                {detailWorker.avatarUrl ? (
+                  <img
+                    src={detailWorker.avatarUrl}
+                    alt={detailWorker.name}
+                    className="w-10 h-10 rounded-xl object-cover shrink-0"
+                  />
+                ) : (
+                  <div className="w-10 h-10 rounded-xl bg-amber-500/20 border border-amber-400/30 flex items-center justify-center shrink-0">
+                    <HardHat className="w-5 h-5 text-amber-300" />
+                  </div>
+                )}
+                <div className="min-w-0">
+                  <h3 className="text-sm font-extrabold truncate">{detailWorker.name}</h3>
+                  <p className="text-[11px] text-slate-300 truncate">
+                    {detailWorker.position} · {detailWorker.isActive ? 'Aktif' : 'Selesai'} · Area{' '}
+                    {detailWorker.workArea || 'Konstruksi'}
+                  </p>
+                </div>
+              </div>
+              <button
+                onClick={() => setDetailWorkerId(null)}
+                className="p-1.5 rounded-lg hover:bg-white/10 transition cursor-pointer"
+                title="Tutup"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4 text-xs max-h-[70vh] overflow-y-auto">
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
+                <div className="p-3 rounded-xl border border-slate-200 bg-slate-50">
+                  <span className="text-[10px] text-slate-500 block">Tarif Harian</span>
+                  <span className="font-black text-slate-900 font-mono">{formatCurrency(detailWorker.dailyRate || 0)}</span>
+                </div>
+                <div className="p-3 rounded-xl border border-slate-200 bg-slate-50">
+                  <span className="text-[10px] text-slate-500 block">Total Upah Diterima</span>
+                  <span className="font-black text-emerald-700 font-mono">{formatCurrency(detailStats.totalEarned)}</span>
+                </div>
+                <div className="p-3 rounded-xl border border-slate-200 bg-slate-50">
+                  <span className="text-[10px] text-slate-500 block">Hari Belum Dibayar</span>
+                  <span
+                    className={`font-black font-mono ${detailStats.unpaidDays > 0 ? 'text-amber-700' : 'text-slate-900'}`}
+                  >
+                    {formatNumber(detailStats.unpaidDays)} hari
+                  </span>
+                </div>
+                <div className="p-3 rounded-xl border border-slate-200 bg-slate-50">
+                  <span className="text-[10px] text-slate-500 block">Kas Bon Aktif</span>
+                  <span
+                    className={`font-black font-mono ${detailStats.kasbonTotal > 0 ? 'text-sky-700' : 'text-slate-900'}`}
+                  >
+                    {formatCurrency(detailStats.kasbonTotal)}
+                  </span>
+                </div>
+              </div>
+
+              <div className="p-4 rounded-2xl border border-slate-200 bg-white">
+                <p className="font-bold text-slate-800 mb-2">Rekap Absensi {monthLabel(detailStats.monthKey)}</p>
+                <div className="grid grid-cols-3 gap-2 text-center">
+                  <div className="p-2 rounded-lg bg-emerald-50 border border-emerald-100">
+                    <span className="block text-base font-black text-emerald-700">{detailStats.hadir}</span>
+                    <span className="text-[10px] text-emerald-800">Hadir</span>
+                  </div>
+                  <div className="p-2 rounded-lg bg-blue-50 border border-blue-100">
+                    <span className="block text-base font-black text-blue-700">{detailStats.half}</span>
+                    <span className="text-[10px] text-blue-800">½ Hari</span>
+                  </div>
+                  <div className="p-2 rounded-lg bg-rose-50 border border-rose-100">
+                    <span className="block text-base font-black text-rose-700">{detailStats.alpa}</span>
+                    <span className="text-[10px] text-rose-800">Alpa</span>
+                  </div>
+                </div>
+              </div>
+
+              {detailStats.kasbons.length > 0 && (
+                <div className="p-4 rounded-2xl border border-sky-200 bg-sky-50/60">
+                  <p className="font-bold text-sky-900 mb-2">Kas Bon Belum Dipotong</p>
+                  <div className="space-y-1.5">
+                    {detailStats.kasbons.map((k) => (
+                      <div key={k.id} className="flex items-center justify-between text-[11px]">
+                        <span className="text-sky-800">
+                          {formatDate(k.date)} · {k.description || 'Kas bon'}
+                        </span>
+                        <span className="font-mono font-bold text-sky-900">{formatCurrency(k.remainingAmount)}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              <div className="p-4 rounded-2xl border border-slate-200 bg-white">
+                <p className="font-bold text-slate-800 mb-2">Riwayat Pembayaran ({detailStats.payments.length})</p>
+                {detailStats.payments.length === 0 ? (
+                  <p className="text-[11px] text-slate-400">Belum ada pembayaran.</p>
+                ) : (
+                  <div className="space-y-1.5">
+                    {detailStats.payments.slice(0, 6).map((p) => (
+                      <div key={p.id} className="flex items-center justify-between text-[11px]">
+                        <span className="text-slate-600">
+                          {formatDate(p.date)} · {p.itemName}
+                        </span>
+                        <span className="font-mono font-bold text-slate-900">{formatCurrency(p.totalAmount)}</span>
+                      </div>
+                    ))}
+                    {detailStats.payments.length > 6 && (
+                      <p className="text-[10px] text-slate-400">
+                        +{detailStats.payments.length - 6} pembayaran lainnya…
+                      </p>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="px-5 py-3.5 border-t border-slate-100 flex items-center justify-end gap-2">
+              <button
+                onClick={() => {
+                  const id = detailWorker.id;
+                  setDetailWorkerId(null);
+                  openKasbonModal(id);
+                }}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl border border-sky-200 bg-sky-50 text-sky-800 font-bold transition hover:bg-sky-100 cursor-pointer"
+              >
+                <Receipt className="w-3.5 h-3.5" />
+                <span>Beri Kas Bon</span>
+              </button>
+              <button
+                onClick={() => {
+                  const w = detailWorker;
+                  setDetailWorkerId(null);
+                  openPayModal(w);
+                }}
+                className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-emerald-600 hover:bg-emerald-500 text-white font-bold transition cursor-pointer"
+              >
+                <Wallet className="w-3.5 h-3.5" />
+                <span>Bayar Upah</span>
+              </button>
+            </div>
           </div>
         </div>
       )}
