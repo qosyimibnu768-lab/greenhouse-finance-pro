@@ -22,6 +22,13 @@ interface TransactionsPageProps {
   onNavigate?: (tab: string, subtab?: string) => void;
 }
 
+/** Deteksi upah tenaga kerja konstruksi (tersimpan sebagai Investasi/CAPEX dari modul HR Konstruksi). */
+const WAGE_KEYWORD_REGEX = /(^|[^a-zA-Z])(gaji|upah)/i;
+const isConstructionWageTrx = (t: Transaction): boolean => {
+  if (t.type !== 'pengeluaran' || t.expenseGroup !== 'investasi') return false;
+  return WAGE_KEYWORD_REGEX.test(`${t.subcategory || ''} ${t.note || ''}`);
+};
+
 export const TransactionsPage: React.FC<TransactionsPageProps> = ({
   onOpenAddTransaction,
   onEditTransaction,
@@ -60,7 +67,13 @@ export const TransactionsPage: React.FC<TransactionsPageProps> = ({
       if (typeFilter === 'pengeluaran' && t.type !== 'pengeluaran') return false;
       if (typeFilter === 'operasional' && (t.type !== 'pengeluaran' || t.expenseGroup === 'investasi' || t.expenseGroup === 'pembayaran-hutang' || t.expenseGroup === 'pemberian-kasbon')) return false;
       if (typeFilter === 'investasi' && t.expenseGroup !== 'investasi') return false;
-      if (typeFilter === 'payroll' && t.category !== 'Gaji Karyawan / Payroll' && !t.id.startsWith('TRX-PAY-')) return false;
+      if (typeFilter === 'payroll') {
+        const isPayrollTrx =
+          t.category === 'Gaji Karyawan / Payroll' ||
+          t.id.startsWith('TRX-PAY-') ||
+          WAGE_KEYWORD_REGEX.test(`${t.category || ''} ${t.subcategory || ''} ${t.note || ''}`);
+        if (!isPayrollTrx) return false;
+      }
 
       // Cycle filter
       if (cycleFilter !== 'all') {
@@ -319,6 +332,16 @@ export const TransactionsPage: React.FC<TransactionsPageProps> = ({
                               <span>Payroll Staf</span>
                             </button>
                           )}
+                          {isConstructionWageTrx(trx) && (
+                            <button
+                              type="button"
+                              onClick={() => onNavigate?.('hr-konstruksi')}
+                              className="text-[10px] font-bold text-teal-700 bg-teal-50 hover:bg-teal-100 px-1.5 py-0.5 rounded border border-teal-200 transition cursor-pointer flex items-center gap-1"
+                              title="Upah konstruksi (capex) — buka modul HR Konstruksi"
+                            >
+                              <span>Upah Konstruksi</span>
+                            </button>
+                          )}
                         </div>
                         {trx.note && <p className="text-slate-500 text-[11px] mt-0.5 max-w-xs">{trx.note}</p>}
                       </td>
@@ -421,6 +444,11 @@ export const TransactionsPage: React.FC<TransactionsPageProps> = ({
                           {isInvestment && (
                             <span className="text-[9px] font-bold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
                               Investasi
+                            </span>
+                          )}
+                          {isConstructionWageTrx(trx) && (
+                            <span className="text-[9px] font-bold text-teal-700 bg-teal-50 px-1.5 py-0.5 rounded border border-teal-200">
+                              Upah Konstruksi
                             </span>
                           )}
                         </div>
