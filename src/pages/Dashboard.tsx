@@ -214,7 +214,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ onNavigate }) => {
           <div className="text-lg sm:text-2xl font-black font-mono text-rose-700">
             {formatCurrency(metrics.totalPengeluaran)}
           </div>
-          <p className="text-[11px] text-slate-500 mt-1">Operasional + Investasi aset</p>
+          <p className="text-[11px] text-slate-500 mt-1">Semua kas keluar (operasional, investasi & mutasi kas)</p>
         </div>
 
         {/* 4. LABA BERSIH */}
