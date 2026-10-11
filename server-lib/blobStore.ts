@@ -2,8 +2,9 @@
  * Penyimpanan database untuk Vercel Serverless Functions.
  *
  * Mode:
- *  - "supabase"      : Supabase (Postgres via REST/PostgREST) — satu baris JSONB di tabel gfp_database.
- *                      Aktif otomatis bila env SUPABASE_URL & SUPABASE_SERVICE_ROLE_KEY (atau ANON_KEY) diisi.
+ *  - "pg"            : Postgres langsung (Supabase pooler) — satu baris JSONB di tabel gfp_database.
+ *                      Aktif otomatis bila env SUPABASE_DB_URL (atau SUPABASE_DB_HOST+PASSWORD) diisi.
+ *  - "supabase"      : Supabase REST/PostgREST — bila env SUPABASE_URL & SUPABASE_SERVICE_ROLE_KEY diisi.
  *  - "upstash"       : Upstash Redis (REST) — alternatif gratis (256 MB, 500 rb perintah/bulan).
  *                      Aktif otomatis bila env UPSTASH_REDIS_REST_URL & UPSTASH_REDIS_REST_TOKEN diisi.
  *  - "blob"          : Vercel Blob (produksi di Vercel yang sudah dihubungkan ke Blob store)
@@ -21,7 +22,7 @@ import { SEED_DATABASE } from './seed.js';
 const BLOB_PATHNAME = process.env.GFP_BLOB_PATH || 'greenhouse-finance-pro/database-v2.json';
 const ENVELOPE_VERSION = 1;
 
-export type PersistenceMode = 'supabase' | 'upstash' | 'blob' | 'local-file' | 'unconfigured';
+export type PersistenceMode = 'pg' | 'supabase' | 'upstash' | 'blob' | 'local-file' | 'unconfigured';
 
 /** Error khusus: Blob store milik akun Vercel sedang di-suspend (mis. masalah billing/kuota). */
 export class BlobStoreSuspendedError extends Error {
@@ -48,11 +49,13 @@ export function persistenceMode(): PersistenceMode {
   const forced = (process.env.GFP_STORAGE || '').toLowerCase();
 
   if (forced === 'local' || forced === 'local-file') return 'local-file';
+  if (forced === 'pg' || forced === 'postgres') return hasPgEnv() ? 'pg' : process.env.VERCEL ? 'unconfigured' : 'local-file';
   if (forced === 'supabase') return hasSupabaseEnv() ? 'supabase' : process.env.VERCEL ? 'unconfigured' : 'local-file';
   if (forced === 'blob') return hasVercelBlobEnv() ? 'blob' : process.env.VERCEL ? 'unconfigured' : 'local-file';
   if (forced === 'upstash') return hasUpstashEnv() ? 'upstash' : process.env.VERCEL ? 'unconfigured' : 'local-file';
 
-  // Otomatis: Supabase diprioritaskan, lalu Upstash, lalu Vercel Blob.
+  // Otomatis: Postgres langsung diprioritaskan, lalu Supabase REST, Upstash, Vercel Blob.
+  if (hasPgEnv()) return 'pg';
   if (hasSupabaseEnv()) return 'supabase';
   if (hasUpstashEnv()) return 'upstash';
   if (hasVercelBlobEnv()) return 'blob';
@@ -61,7 +64,55 @@ export function persistenceMode(): PersistenceMode {
 }
 
 export function storageMessage(): string {
-  return 'Penyimpanan cloud belum dikonfigurasi. Opsi gratis: (1) Supabase — isi env SUPABASE_URL & SUPABASE_SERVICE_ROLE_KEY (tabel gfp_database) lalu Redeploy; (2) Upstash Redis — isi env UPSTASH_REDIS_REST_URL & UPSTASH_REDIS_REST_TOKEN; (3) Vercel Blob — hubungkan Blob store di Vercel Dashboard → Storage.';
+  return 'Penyimpanan cloud belum dikonfigurasi. Opsi gratis: (1) Supabase Postgres — isi env SUPABASE_DB_URL (tabel gfp_database); (2) Supabase REST — env SUPABASE_URL & SUPABASE_SERVICE_ROLE_KEY; (3) Upstash Redis — env UPSTASH_REDIS_REST_URL & UPSTASH_REDIS_REST_TOKEN; (4) Vercel Blob — hubungkan Blob store di Vercel Dashboard → Storage.';
+}
+
+// ===== Postgres langsung (Supabase pooler) =====
+function pgConfig(): { connectionString: string } | null {
+  const url = process.env.SUPABASE_DB_URL || '';
+  if (url) return { connectionString: url };
+
+  const host = process.env.SUPABASE_DB_HOST || '';
+  const password = process.env.SUPABASE_DB_PASSWORD || '';
+  if (host && password) {
+    const user = process.env.SUPABASE_DB_USER || 'postgres';
+    const port = process.env.SUPABASE_DB_PORT || '6543';
+    const database = process.env.SUPABASE_DB_NAME || 'postgres';
+    return {
+      connectionString: `postgresql://${encodeURIComponent(user)}:${encodeURIComponent(password)}@${host}:${port}/${database}`,
+    };
+  }
+  return null;
+}
+
+function hasPgEnv(): boolean {
+  return pgConfig() !== null;
+}
+
+function pgTable(): string {
+  const t = process.env.SUPABASE_TABLE || 'gfp_database';
+  return /^[a-z_][a-z0-9_]*$/i.test(t) ? t : 'gfp_database';
+}
+
+let pgPoolCached: any = null;
+
+async function pgPool(): Promise<any> {
+  if (pgPoolCached) return pgPoolCached;
+  const cfg = pgConfig();
+  if (!cfg) throw new Error('Postgres: env SUPABASE_DB_URL belum diisi.');
+  const mod: any = await import('pg');
+  const Pool = mod?.Pool || mod?.default?.Pool;
+  const pool = new Pool({
+    connectionString: cfg.connectionString,
+    ssl: { rejectUnauthorized: false },
+    max: 3,
+    idleTimeoutMillis: 15000,
+    connectionTimeoutMillis: 12000,
+  });
+  // Cegah error koneksi idle mematikan proses function.
+  pool.on('error', () => {});
+  pgPoolCached = pool;
+  return pool;
 }
 
 // ===== Supabase (Postgres via REST/PostgREST) =====
@@ -258,6 +309,50 @@ export async function readEnvelope(): Promise<DbEnvelope | null> {
     };
   }
 
+  if (mode === 'pg') {
+    const pool = await pgPool();
+    const table = pgTable();
+    const rowId = process.env.GFP_ROW_ID || 'main';
+
+    let result: any;
+    try {
+      result = await pool.query(`select version, data, updated_at from ${table} where id = $1 limit 1`, [rowId]);
+    } catch (error: any) {
+      const msg = String(error?.message || error);
+      if (/relation .* does not exist/i.test(msg)) {
+        throw new Error(
+          `Postgres: tabel "${table}" belum ada. Buat lewat Supabase → SQL Editor (file supabase/setup.sql).`
+        );
+      }
+      throw new Error(`Postgres: ${msg.slice(0, 220)}`);
+    }
+
+    if (!result || !result.rows || result.rows.length === 0) return null;
+    const row = result.rows[0];
+
+    let data = row.data;
+    if (typeof data === 'string') {
+      try {
+        data = JSON.parse(data);
+      } catch {
+        return null;
+      }
+    }
+    if (data === null || data === undefined) return null;
+
+    const updatedAt =
+      row.updated_at instanceof Date
+        ? row.updated_at.toISOString()
+        : String(row.updated_at || new Date().toISOString());
+
+    return {
+      envelopeVersion: ENVELOPE_VERSION,
+      version: Number(row.version) || Date.now(),
+      updatedAt,
+      data,
+    };
+  }
+
   if (mode === 'supabase') {
     const cfg = supabaseConfig();
     const query = `/rest/v1/${encodeURIComponent(cfg.table)}?id=eq.${encodeURIComponent(
@@ -349,6 +444,28 @@ export async function writeEnvelope(data: any): Promise<number> {
       data,
     };
     await upstashCommand(['SET', cfg.key, JSON.stringify(envelope)]);
+    return version;
+  }
+
+  if (mode === 'pg') {
+    const pool = await pgPool();
+    const table = pgTable();
+    const rowId = process.env.GFP_ROW_ID || 'main';
+    try {
+      await pool.query(
+        `insert into ${table} (id, version, updated_at, data) values ($1, $2, now(), $3)
+         on conflict (id) do update set version = excluded.version, updated_at = now(), data = excluded.data`,
+        [rowId, version, JSON.stringify(data)]
+      );
+    } catch (error: any) {
+      const msg = String(error?.message || error);
+      if (/relation .* does not exist/i.test(msg)) {
+        throw new Error(
+          `Postgres: tabel "${table}" belum ada. Buat lewat Supabase → SQL Editor (file supabase/setup.sql).`
+        );
+      }
+      throw new Error(`Postgres: gagal menyimpan — ${msg.slice(0, 220)}`);
+    }
     return version;
   }
 

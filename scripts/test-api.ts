@@ -12,10 +12,18 @@ import path from 'path';
 const tempDbPath = path.join(os.tmpdir(), `gfp-test-db-${Date.now()}.json`);
 fs.copyFileSync(path.join(process.cwd(), 'data', 'greenhouse_db.seed.json'), tempDbPath);
 process.env.GFP_LOCAL_DB = tempDbPath;
+process.env.GFP_STORAGE = 'local';
 delete process.env.BLOB_READ_WRITE_TOKEN;
 delete process.env.BLOB_STORE_ID;
 delete process.env.VERCEL_OIDC_TOKEN;
 delete process.env.VERCEL;
+delete process.env.SUPABASE_DB_URL;
+delete process.env.SUPABASE_DB_HOST;
+delete process.env.SUPABASE_DB_PASSWORD;
+delete process.env.SUPABASE_URL;
+delete process.env.SUPABASE_SERVICE_ROLE_KEY;
+delete process.env.UPSTASH_REDIS_REST_URL;
+delete process.env.UPSTASH_REDIS_REST_TOKEN;
 
 import { GET as dbGet, POST as dbPost } from '../api/database/index';
 import { POST as resetPost } from '../api/database/reset';
