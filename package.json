@@ -14,7 +14,9 @@
     "clean": "rm -rf dist server.js",
     "lint": "tsc --noEmit",
     "test:api": "tsx scripts/test-api.ts",
-    "test:upstash": "tsx scripts/test-upstash.ts"
+    "test:upstash": "tsx scripts/test-upstash.ts",
+    "test:supabase": "tsx scripts/test-supabase.ts",
+    "check:storage": "tsx scripts/check-storage.ts"
   },
   "dependencies": {
     "@google/genai": "^2.4.0",

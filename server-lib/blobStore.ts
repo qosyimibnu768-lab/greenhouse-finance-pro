@@ -2,6 +2,8 @@
  * Penyimpanan database untuk Vercel Serverless Functions.
  *
  * Mode:
+ *  - "supabase"      : Supabase (Postgres via REST/PostgREST) — satu baris JSONB di tabel gfp_database.
+ *                      Aktif otomatis bila env SUPABASE_URL & SUPABASE_SERVICE_ROLE_KEY (atau ANON_KEY) diisi.
  *  - "upstash"       : Upstash Redis (REST) — alternatif gratis (256 MB, 500 rb perintah/bulan).
  *                      Aktif otomatis bila env UPSTASH_REDIS_REST_URL & UPSTASH_REDIS_REST_TOKEN diisi.
  *  - "blob"          : Vercel Blob (produksi di Vercel yang sudah dihubungkan ke Blob store)
@@ -19,7 +21,7 @@ import { SEED_DATABASE } from './seed.js';
 const BLOB_PATHNAME = process.env.GFP_BLOB_PATH || 'greenhouse-finance-pro/database-v2.json';
 const ENVELOPE_VERSION = 1;
 
-export type PersistenceMode = 'upstash' | 'blob' | 'local-file' | 'unconfigured';
+export type PersistenceMode = 'supabase' | 'upstash' | 'blob' | 'local-file' | 'unconfigured';
 
 /** Error khusus: Blob store milik akun Vercel sedang di-suspend (mis. masalah billing/kuota). */
 export class BlobStoreSuspendedError extends Error {
@@ -46,10 +48,12 @@ export function persistenceMode(): PersistenceMode {
   const forced = (process.env.GFP_STORAGE || '').toLowerCase();
 
   if (forced === 'local' || forced === 'local-file') return 'local-file';
+  if (forced === 'supabase') return hasSupabaseEnv() ? 'supabase' : process.env.VERCEL ? 'unconfigured' : 'local-file';
   if (forced === 'blob') return hasVercelBlobEnv() ? 'blob' : process.env.VERCEL ? 'unconfigured' : 'local-file';
   if (forced === 'upstash') return hasUpstashEnv() ? 'upstash' : process.env.VERCEL ? 'unconfigured' : 'local-file';
 
-  // Otomatis: Upstash diprioritaskan bila env-nya ada (bisa dipakai di Vercel maupun lokal).
+  // Otomatis: Supabase diprioritaskan, lalu Upstash, lalu Vercel Blob.
+  if (hasSupabaseEnv()) return 'supabase';
   if (hasUpstashEnv()) return 'upstash';
   if (hasVercelBlobEnv()) return 'blob';
   if (process.env.VERCEL) return 'unconfigured';
@@ -57,7 +61,41 @@ export function persistenceMode(): PersistenceMode {
 }
 
 export function storageMessage(): string {
-  return 'Penyimpanan cloud belum dikonfigurasi. Opsi gratis: (1) Upstash Redis — isi env UPSTASH_REDIS_REST_URL & UPSTASH_REDIS_REST_TOKEN lalu Redeploy; (2) Vercel Blob — hubungkan Blob store di Vercel Dashboard → Storage.';
+  return 'Penyimpanan cloud belum dikonfigurasi. Opsi gratis: (1) Supabase — isi env SUPABASE_URL & SUPABASE_SERVICE_ROLE_KEY (tabel gfp_database) lalu Redeploy; (2) Upstash Redis — isi env UPSTASH_REDIS_REST_URL & UPSTASH_REDIS_REST_TOKEN; (3) Vercel Blob — hubungkan Blob store di Vercel Dashboard → Storage.';
+}
+
+// ===== Supabase (Postgres via REST/PostgREST) =====
+function supabaseConfig(): { url: string; key: string; table: string; rowId: string } {
+  return {
+    url: (process.env.SUPABASE_URL || '').replace(/\/+$/, ''),
+    key: process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY || '',
+    table: process.env.SUPABASE_TABLE || 'gfp_database',
+    rowId: process.env.GFP_ROW_ID || 'main',
+  };
+}
+
+function hasSupabaseEnv(): boolean {
+  const cfg = supabaseConfig();
+  return Boolean(cfg.url && cfg.key);
+}
+
+async function supabaseFetch(
+  pathAndQuery: string,
+  init: RequestInit = {}
+): Promise<{ status: number; text: string }> {
+  const cfg = supabaseConfig();
+  const res = await fetch(`${cfg.url}${pathAndQuery}`, {
+    ...init,
+    headers: {
+      apikey: cfg.key,
+      Authorization: `Bearer ${cfg.key}`,
+      'Content-Type': 'application/json',
+      ...(init.headers || {}),
+    },
+    cache: 'no-store',
+  });
+  const text = await res.text().catch(() => '');
+  return { status: res.status, text };
 }
 
 // ===== Upstash Redis (REST) — penyimpanan alternatif gratis =====
@@ -220,6 +258,51 @@ export async function readEnvelope(): Promise<DbEnvelope | null> {
     };
   }
 
+  if (mode === 'supabase') {
+    const cfg = supabaseConfig();
+    const query = `/rest/v1/${encodeURIComponent(cfg.table)}?id=eq.${encodeURIComponent(
+      cfg.rowId
+    )}&select=version,data,updated_at&limit=1`;
+    const res = await supabaseFetch(query);
+
+    if (res.status === 404) {
+      throw new Error(
+        `Supabase: tabel "${cfg.table}" belum ada. Buat tabel lewat Supabase → SQL Editor (lihat panduan pemasangan).`
+      );
+    }
+    if (res.status === 401 || res.status === 403) {
+      throw new Error('Supabase: kunci API ditolak — periksa SUPABASE_SERVICE_ROLE_KEY / SUPABASE_ANON_KEY dan RLS.');
+    }
+    if (res.status < 200 || res.status >= 300) {
+      throw new Error(`Supabase: HTTP ${res.status}${res.text ? ` - ${res.text.slice(0, 200)}` : ''}`);
+    }
+
+    let rows: any[] = [];
+    try {
+      rows = res.text ? JSON.parse(res.text) : [];
+    } catch {
+      rows = [];
+    }
+    if (!Array.isArray(rows) || rows.length === 0) return null;
+
+    let data = rows[0]?.data;
+    if (typeof data === 'string') {
+      try {
+        data = JSON.parse(data);
+      } catch {
+        return null;
+      }
+    }
+    if (data === null || data === undefined) return null;
+
+    return {
+      envelopeVersion: ENVELOPE_VERSION,
+      version: Number(rows[0]?.version) || Date.now(),
+      updatedAt: rows[0]?.updated_at || new Date().toISOString(),
+      data,
+    };
+  }
+
   if (mode !== 'blob') return null;
 
   try {
@@ -266,6 +349,27 @@ export async function writeEnvelope(data: any): Promise<number> {
       data,
     };
     await upstashCommand(['SET', cfg.key, JSON.stringify(envelope)]);
+    return version;
+  }
+
+  if (mode === 'supabase') {
+    const cfg = supabaseConfig();
+    const row = {
+      id: cfg.rowId,
+      version,
+      updated_at: new Date().toISOString(),
+      data,
+    };
+    const res = await supabaseFetch(`/rest/v1/${encodeURIComponent(cfg.table)}`, {
+      method: 'POST',
+      headers: { Prefer: 'resolution=merge-duplicates,return=minimal' },
+      body: JSON.stringify(row),
+    });
+    if (res.status < 200 || res.status >= 300) {
+      throw new Error(
+        `Supabase: gagal menyimpan (HTTP ${res.status})${res.text ? ` - ${res.text.slice(0, 200)}` : ''}`
+      );
+    }
     return version;
   }
 
