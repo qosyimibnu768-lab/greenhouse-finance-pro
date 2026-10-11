@@ -711,7 +711,7 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       fetch('/api/sync/version')
         .then((r) => {
           if (r.status === 503) {
-            // Server sinkronisasi belum siap (mis. Blob belum dihubungkan) —
+            // Server sinkronisasi belum siap (mis. penyimpanan belum dihubungkan) —
             // hentikan polling agar tidak membebani server.
             clearInterval(timer);
             return null;
@@ -725,7 +725,7 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
           }
         })
         .catch(() => {});
-    }, 10000);
+    }, 30000);
     return () => clearInterval(timer);
   }, [refreshData]);
 

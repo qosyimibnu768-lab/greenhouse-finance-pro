@@ -2,11 +2,13 @@
  * Penyimpanan database untuk Vercel Serverless Functions.
  *
  * Mode:
+ *  - "upstash"       : Upstash Redis (REST) — alternatif gratis (256 MB, 500 rb perintah/bulan).
+ *                      Aktif otomatis bila env UPSTASH_REDIS_REST_URL & UPSTASH_REDIS_REST_TOKEN diisi.
  *  - "blob"          : Vercel Blob (produksi di Vercel yang sudah dihubungkan ke Blob store)
  *  - "local-file"    : file data/greenhouse_db.json (untuk pengujian lokal tanpa env Vercel)
- *  - "unconfigured"  : berjalan di Vercel TANPA Blob store — endpoint mengembalikan 503
+ *  - "unconfigured"  : berjalan di Vercel TANPA penyimpanan — endpoint mengembalikan 503
  *
- * Bentuk data di Blob: envelope { envelopeVersion, version, updatedAt, data }.
+ * Bentuk data di penyimpanan: envelope { envelopeVersion, version, updatedAt, data }.
  * `version` dipakai endpoint /api/sync/version untuk sinkronisasi multi-perangkat.
  */
 import { get, put } from '@vercel/blob';
@@ -17,7 +19,7 @@ import { SEED_DATABASE } from './seed.js';
 const BLOB_PATHNAME = process.env.GFP_BLOB_PATH || 'greenhouse-finance-pro/database-v2.json';
 const ENVELOPE_VERSION = 1;
 
-export type PersistenceMode = 'blob' | 'local-file' | 'unconfigured';
+export type PersistenceMode = 'upstash' | 'blob' | 'local-file' | 'unconfigured';
 
 /** Error khusus: Blob store milik akun Vercel sedang di-suspend (mis. masalah billing/kuota). */
 export class BlobStoreSuspendedError extends Error {
@@ -41,14 +43,74 @@ export interface DbEnvelope {
 }
 
 export function persistenceMode(): PersistenceMode {
-  if (process.env.BLOB_READ_WRITE_TOKEN) return 'blob';
-  if (process.env.BLOB_STORE_ID && process.env.VERCEL_OIDC_TOKEN) return 'blob';
+  const forced = (process.env.GFP_STORAGE || '').toLowerCase();
+
+  if (forced === 'local' || forced === 'local-file') return 'local-file';
+  if (forced === 'blob') return hasVercelBlobEnv() ? 'blob' : process.env.VERCEL ? 'unconfigured' : 'local-file';
+  if (forced === 'upstash') return hasUpstashEnv() ? 'upstash' : process.env.VERCEL ? 'unconfigured' : 'local-file';
+
+  // Otomatis: Upstash diprioritaskan bila env-nya ada (bisa dipakai di Vercel maupun lokal).
+  if (hasUpstashEnv()) return 'upstash';
+  if (hasVercelBlobEnv()) return 'blob';
   if (process.env.VERCEL) return 'unconfigured';
   return 'local-file';
 }
 
 export function storageMessage(): string {
-  return 'Penyimpanan Vercel Blob belum dihubungkan ke project ini. Buka Vercel Dashboard → tab Storage → Create/Connect Blob store ke project, lalu lakukan Redeploy.';
+  return 'Penyimpanan cloud belum dikonfigurasi. Opsi gratis: (1) Upstash Redis — isi env UPSTASH_REDIS_REST_URL & UPSTASH_REDIS_REST_TOKEN lalu Redeploy; (2) Vercel Blob — hubungkan Blob store di Vercel Dashboard → Storage.';
+}
+
+// ===== Upstash Redis (REST) — penyimpanan alternatif gratis =====
+function upstashConfig(): { url: string; token: string; key: string } {
+  return {
+    url: process.env.UPSTASH_REDIS_REST_URL || '',
+    token: process.env.UPSTASH_REDIS_REST_TOKEN || '',
+    key: process.env.GFP_REDIS_KEY || 'greenhouse-finance-pro:database-v2',
+  };
+}
+
+function hasUpstashEnv(): boolean {
+  const cfg = upstashConfig();
+  return Boolean(cfg.url && cfg.token);
+}
+
+export function hasVercelBlobEnv(): boolean {
+  return Boolean(
+    process.env.BLOB_READ_WRITE_TOKEN || (process.env.BLOB_STORE_ID && process.env.VERCEL_OIDC_TOKEN)
+  );
+}
+
+/**
+ * Kirim satu perintah Redis via REST Upstash.
+ * Dokumentasi: POST {URL} dengan body JSON array, mis. ["SET","key","value"] / ["GET","key"].
+ */
+async function upstashCommand(command: Array<string | number>): Promise<any> {
+  const cfg = upstashConfig();
+  const res = await fetch(cfg.url, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${cfg.token}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(command),
+    cache: 'no-store',
+  });
+
+  const text = await res.text().catch(() => '');
+  if (!res.ok) {
+    throw new Error(`Upstash Redis: HTTP ${res.status}${text ? ` - ${text.slice(0, 200)}` : ''}`);
+  }
+
+  let data: any = null;
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch {
+    data = null;
+  }
+  if (data && typeof data === 'object' && data.error) {
+    throw new Error(`Upstash Redis: ${String(data.error).slice(0, 200)}`);
+  }
+  return data?.result ?? null;
 }
 
 function localFilePath(): string {
@@ -135,6 +197,29 @@ export async function readEnvelope(): Promise<DbEnvelope | null> {
     }
   }
 
+  if (mode === 'upstash') {
+    const cfg = upstashConfig();
+    const raw = await upstashCommand(['GET', cfg.key]);
+    if (!raw || typeof raw !== 'string') return null;
+
+    let parsed: any;
+    try {
+      parsed = JSON.parse(raw);
+    } catch {
+      return null;
+    }
+    if (parsed && typeof parsed === 'object' && parsed.envelopeVersion && parsed.data) {
+      return parsed as DbEnvelope;
+    }
+    // Kompatibilitas: data lama tersimpan sebagai database mentah
+    return {
+      envelopeVersion: ENVELOPE_VERSION,
+      version: Date.now(),
+      updatedAt: new Date().toISOString(),
+      data: parsed,
+    };
+  }
+
   if (mode !== 'blob') return null;
 
   try {
@@ -169,6 +254,18 @@ export async function writeEnvelope(data: any): Promise<number> {
     const filePath = localFilePath();
     fs.mkdirSync(path.dirname(filePath), { recursive: true });
     fs.writeFileSync(filePath, JSON.stringify(data, null, 2), 'utf-8');
+    return version;
+  }
+
+  if (mode === 'upstash') {
+    const cfg = upstashConfig();
+    const envelope: DbEnvelope = {
+      envelopeVersion: ENVELOPE_VERSION,
+      version,
+      updatedAt: new Date().toISOString(),
+      data,
+    };
+    await upstashCommand(['SET', cfg.key, JSON.stringify(envelope)]);
     return version;
   }
 
