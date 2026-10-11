@@ -3,7 +3,7 @@
  * GET  ?text=...        → parse perintah suara & catat transaksi (iPhone Shortcuts)
  * POST { "text": "..." } → sama, untuk web app & Siri
  */
-import { ensureEnvelope, persistenceMode, storageMessage, writeEnvelope } from '../../server-lib/blobStore.js';
+import { persistenceMode, readEnvelope, storageMessage, writeEnvelope } from '../../server-lib/blobStore.js';
 import { jsonResponse, readJsonBody } from '../../server-lib/http.js';
 import {
   buildVoiceTransaction,
@@ -27,9 +27,18 @@ async function handleVoiceRequest(text: string): Promise<Response> {
     return jsonResponse({ success: false, error: storageMessage() }, 503);
   }
 
-  const envelope = await ensureEnvelope();
+  // JANGAN auto-seed data demo ke penyimpanan kosong — data asli pengguna harus
+  // menjadi sumber pertama (diunggah otomatis oleh aplikasi saat Sinkron).
+  const envelope = await readEnvelope();
   if (!envelope) {
-    return jsonResponse({ success: false, error: 'Database belum tersedia di server.' }, 500);
+    return jsonResponse(
+      {
+        success: false,
+        error:
+          'Database cloud belum berisi data. Buka aplikasi Greenhouse Finance Pro di perangkat Anda lalu tekan Sinkron terlebih dahulu.',
+      },
+      503
+    );
   }
 
   const db = envelope.data;
