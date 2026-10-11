@@ -12,7 +12,11 @@ export async function GET(): Promise<Response> {
 
   try {
     const envelope = await readEnvelope();
-    return jsonResponse({ version: envelope?.version ?? 0, timestamp: new Date().toISOString() });
+    return jsonResponse({
+      version: envelope?.version ?? 0,
+      timestamp: new Date().toISOString(),
+      storage: persistenceMode(),
+    });
   } catch (error: any) {
     if (isStoreSuspendedError(error)) {
       return jsonResponse(

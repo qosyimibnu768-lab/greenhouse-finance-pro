@@ -30,7 +30,10 @@ export async function GET(): Promise<Response> {
 
   if (!envelope) {
     // Belum ada data di server — klien tetap memakai data lokalnya.
-    return jsonResponse({ error: 'Database belum tersedia di server', initialized: false }, 404);
+    return jsonResponse(
+      { error: 'Database belum tersedia di server', initialized: false, storage: persistenceMode() },
+      404
+    );
   }
 
   return jsonResponse(envelope.data);
