@@ -22,8 +22,22 @@ interface TransactionsPageProps {
   onNavigate?: (tab: string, subtab?: string) => void;
 }
 
-/** Deteksi upah tenaga kerja konstruksi (tersimpan sebagai Investasi/CAPEX dari modul HR Konstruksi). */
+/** Deteksi transaksi upah. PENTING: gaji karyawan (operasional) dan upah konstruksi (capex)
+ *  adalah dua hal berbeda secara akuntansi — filternya dipisah agar tidak campur. */
 const WAGE_KEYWORD_REGEX = /(^|[^a-zA-Z])(gaji|upah)/i;
+
+/** Gaji karyawan reguler (biaya operasional) — dari modul HR & Payroll. */
+const isRegularPayrollTrx = (t: Transaction): boolean => {
+  if (t.category === 'Gaji Karyawan / Payroll' || t.id.startsWith('TRX-PAY-')) return true;
+  // Cadangan untuk data lama: pengeluaran non-investasi yang jelas memuat kata gaji/upah.
+  return (
+    t.type === 'pengeluaran' &&
+    t.expenseGroup !== 'investasi' &&
+    WAGE_KEYWORD_REGEX.test(`${t.category || ''} ${t.subcategory || ''} ${t.note || ''}`)
+  );
+};
+
+/** Upah tenaga kerja konstruksi (tersimpan sebagai Investasi/CAPEX dari modul HR Konstruksi). */
 const isConstructionWageTrx = (t: Transaction): boolean => {
   if (t.type !== 'pengeluaran' || t.expenseGroup !== 'investasi') return false;
   return WAGE_KEYWORD_REGEX.test(`${t.subcategory || ''} ${t.note || ''}`);
@@ -38,7 +52,7 @@ export const TransactionsPage: React.FC<TransactionsPageProps> = ({
 
   // Search & Filter state
   const [searchTerm, setSearchTerm] = useState('');
-  const [typeFilter, setTypeFilter] = useState<'all' | 'pemasukan' | 'pengeluaran' | 'operasional' | 'investasi' | 'payroll'>('all');
+  const [typeFilter, setTypeFilter] = useState<'all' | 'pemasukan' | 'pengeluaran' | 'operasional' | 'investasi' | 'payroll' | 'konstruksi'>('all');
   const [cycleFilter, setCycleFilter] = useState<string>('all');
   const [tunnelFilter, setTunnelFilter] = useState<string>('all');
   const [startDate, setStartDate] = useState<string>('');
@@ -68,11 +82,12 @@ export const TransactionsPage: React.FC<TransactionsPageProps> = ({
       if (typeFilter === 'operasional' && (t.type !== 'pengeluaran' || t.expenseGroup === 'investasi' || t.expenseGroup === 'pembayaran-hutang' || t.expenseGroup === 'pemberian-kasbon')) return false;
       if (typeFilter === 'investasi' && t.expenseGroup !== 'investasi') return false;
       if (typeFilter === 'payroll') {
-        const isPayrollTrx =
-          t.category === 'Gaji Karyawan / Payroll' ||
-          t.id.startsWith('TRX-PAY-') ||
-          WAGE_KEYWORD_REGEX.test(`${t.category || ''} ${t.subcategory || ''} ${t.note || ''}`);
-        if (!isPayrollTrx) return false;
+        // Khusus gaji karyawan reguler (operasional) — tanpa upah konstruksi.
+        if (!isRegularPayrollTrx(t)) return false;
+      }
+      if (typeFilter === 'konstruksi') {
+        // Khusus upah tukang/kuli konstruksi (investasi/capex) — tanpa gaji karyawan.
+        if (!isConstructionWageTrx(t)) return false;
       }
 
       // Cycle filter
@@ -212,11 +227,21 @@ export const TransactionsPage: React.FC<TransactionsPageProps> = ({
             </button>
             <button
               onClick={() => setTypeFilter('payroll')}
+              title="Gaji karyawan reguler (biaya operasional)"
               className={`px-3 py-1.5 text-xs font-medium rounded-lg transition cursor-pointer ${
                 typeFilter === 'payroll' ? 'bg-indigo-600 text-white shadow-xs font-bold' : 'text-slate-600 hover:text-slate-900'
               }`}
             >
-              Gaji / Payroll
+              Gaji Karyawan
+            </button>
+            <button
+              onClick={() => setTypeFilter('konstruksi')}
+              title="Upah tukang/kuli konstruksi (investasi / capex — tidak mengurangi Laba Bersih)"
+              className={`px-3 py-1.5 text-xs font-medium rounded-lg transition cursor-pointer ${
+                typeFilter === 'konstruksi' ? 'bg-teal-600 text-white shadow-xs font-bold' : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              Upah Konstruksi
             </button>
           </div>
         </div>
@@ -322,7 +347,7 @@ export const TransactionsPage: React.FC<TransactionsPageProps> = ({
                               Investasi
                             </span>
                           )}
-                          {(trx.category === 'Gaji Karyawan / Payroll' || trx.id.startsWith('TRX-PAY-')) && (
+                          {isRegularPayrollTrx(trx) && (
                             <button
                               type="button"
                               onClick={() => onNavigate?.('hr-payroll', 'payroll')}
@@ -415,7 +440,7 @@ export const TransactionsPage: React.FC<TransactionsPageProps> = ({
             filteredTransactions.map((trx) => {
               const isIncome = trx.type === 'pemasukan';
               const isInvestment = trx.expenseGroup === 'investasi';
-              const isPayroll = trx.category === 'Gaji Karyawan / Payroll' || trx.id.startsWith('TRX-PAY-');
+              const isPayroll = isRegularPayrollTrx(trx);
               return (
                 <div key={trx.id} className="p-3.5 space-y-2 hover:bg-slate-50/70 transition">
                   <div className="flex items-start justify-between gap-2.5">
