@@ -485,6 +485,7 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
   const [isSyncing, setIsSyncing] = useState(false);
   const [lastSyncTime, setLastSyncTime] = useState<string>(() => new Date().toISOString());
   const lastSeenVersionRef = useRef<number>(0);
+  const storeSuspendedRef = useRef(false);
   const saveRevisionRef = useRef<number>(0);
 
   // Save state: local update + push to server.
@@ -537,6 +538,18 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
     if (!silent) {
       setIsSyncing(true);
     }
+    // Peringatkan bila penyimpanan cloud Vercel sedang di-suspend (bukan berarti data kosong).
+    const flagSuspended = (info: any) => {
+      if (!info?.suspended) return;
+      if (storeSuspendedRef.current && silent) return;
+      storeSuspendedRef.current = true;
+      addToast({
+        type: 'error',
+        title: 'Cloud Vercel di-suspend',
+        message:
+          'Penyimpanan cloud (Vercel Blob) sedang di-suspend oleh Vercel — data di perangkat Anda aman. Buka Vercel Dashboard → Storage untuk memulihkan, lalu tekan Sinkron.',
+      });
+    };
     try {
       // Jika ada perubahan lokal yang belum terunggah, unggah dulu —
       // jangan tarik data server agar perubahan lokal tidak tertimpa.
@@ -556,6 +569,7 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
             setLastSyncTime(new Date().toISOString());
             return true;
           }
+          flagSuspended(await pushRes.json().catch(() => null));
         } catch {
           // Masih offline — pertahankan data lokal
         }
@@ -563,7 +577,12 @@ export const GreenhouseProvider: React.FC<{ children: React.ReactNode }> = ({ ch
       }
 
       const res = await fetch('/api/database');
+      if (res.status === 503) {
+        flagSuspended(await res.json().catch(() => null));
+        return false;
+      }
       if (res.ok) {
+        storeSuspendedRef.current = false;
         const rawData: GreenhouseDatabase = await res.json();
         const migration = migrateLegacyGreenhouseNaming(rawData);
         const data: GreenhouseDatabase = migration.data;

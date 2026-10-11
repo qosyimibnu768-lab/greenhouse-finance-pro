@@ -3,7 +3,7 @@
  * GET  → baca database
  * POST → simpan seluruh database (dipakai aplikasi setiap ada perubahan)
  */
-import { persistenceMode, readEnvelope, storageMessage, writeEnvelope } from '../../server-lib/blobStore.js';
+import { isStoreSuspendedError, persistenceMode, readEnvelope, storageMessage, writeEnvelope } from '../../server-lib/blobStore.js';
 import { jsonResponse, readJsonBody } from '../../server-lib/http.js';
 
 export async function GET(): Promise<Response> {
@@ -11,7 +11,23 @@ export async function GET(): Promise<Response> {
     return jsonResponse({ error: storageMessage(), storage: 'unconfigured' }, 503);
   }
 
-  const envelope = await readEnvelope();
+  let envelope: Awaited<ReturnType<typeof readEnvelope>> = null;
+  try {
+    envelope = await readEnvelope();
+  } catch (error: any) {
+    if (isStoreSuspendedError(error)) {
+      return jsonResponse(
+        {
+          error:
+            'Penyimpanan cloud Vercel (Blob) sedang di-suspend oleh Vercel. Data Anda tidak hilang — buka Vercel Dashboard → Storage untuk memulihkannya.',
+          suspended: true,
+        },
+        503
+      );
+    }
+    return jsonResponse({ error: 'Gagal membaca database dari cloud', details: error?.message }, 500);
+  }
+
   if (!envelope) {
     // Belum ada data di server — klien tetap memakai data lokalnya.
     return jsonResponse({ error: 'Database belum tersedia di server', initialized: false }, 404);
@@ -44,6 +60,9 @@ export async function POST(request: Request): Promise<Response> {
       timestamp: new Date().toISOString(),
     });
   } catch (error: any) {
-    return jsonResponse({ error: 'Gagal menyimpan database', details: error?.message }, 500);
+    return jsonResponse(
+      { error: 'Gagal menyimpan database', details: error?.message, suspended: isStoreSuspendedError(error) },
+      500
+    );
   }
 }

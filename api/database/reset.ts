@@ -2,7 +2,7 @@
  * Vercel Serverless Function: /api/database/reset
  * POST → kembalikan database ke data demo (seed).
  */
-import { persistenceMode, storageMessage, writeEnvelope } from '../../server-lib/blobStore.js';
+import { isStoreSuspendedError, persistenceMode, storageMessage, writeEnvelope } from '../../server-lib/blobStore.js';
 import { jsonResponse } from '../../server-lib/http.js';
 import { SEED_DATABASE } from '../../server-lib/seed.js';
 
@@ -20,6 +20,9 @@ export async function POST(): Promise<Response> {
       version,
     });
   } catch (error: any) {
-    return jsonResponse({ error: 'Gagal reset data demo', details: error?.message }, 500);
+    return jsonResponse(
+      { error: 'Gagal reset data demo', details: error?.message, suspended: isStoreSuspendedError(error) },
+      500
+    );
   }
 }

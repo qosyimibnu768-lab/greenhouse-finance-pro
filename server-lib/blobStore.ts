@@ -19,6 +19,20 @@ const ENVELOPE_VERSION = 1;
 
 export type PersistenceMode = 'blob' | 'local-file' | 'unconfigured';
 
+/** Error khusus: Blob store milik akun Vercel sedang di-suspend (mis. masalah billing/kuota). */
+export class BlobStoreSuspendedError extends Error {
+  constructor(message: string) {
+    super(message);
+    this.name = 'BlobStoreSuspendedError';
+  }
+}
+
+export function isStoreSuspendedError(error: any): boolean {
+  if (error instanceof BlobStoreSuspendedError) return true;
+  const msg = String(error?.message || error || '');
+  return /suspend/i.test(msg);
+}
+
 export interface DbEnvelope {
   envelopeVersion: number;
   version: number;
@@ -68,7 +82,11 @@ async function blobGetPayload(): Promise<any | null> {
         const text = await new Response(result.stream as ReadableStream).text();
         return JSON.parse(text);
       }
-    } catch {
+    } catch (error) {
+      // Store di-suspend Vercel → jangan diperlakukan sebagai "data kosong".
+      if (isStoreSuspendedError(error)) {
+        throw new BlobStoreSuspendedError(String((error as any)?.message || 'Vercel Blob store suspended'));
+      }
       // Mode akses ini tidak berhasil — coba mode berikutnya
       if (cachedReadAccess === access) cachedReadAccess = null;
     }
@@ -133,7 +151,8 @@ export async function readEnvelope(): Promise<DbEnvelope | null> {
       updatedAt: new Date().toISOString(),
       data: parsed,
     };
-  } catch {
+  } catch (error) {
+    if (isStoreSuspendedError(error)) throw error;
     return null;
   }
 }

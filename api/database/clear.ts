@@ -2,7 +2,7 @@
  * Vercel Serverless Function: /api/database/clear
  * POST → kosongkan seluruh data usaha (mulai dari nol).
  */
-import { buildEmptyDatabase, persistenceMode, storageMessage, writeEnvelope } from '../../server-lib/blobStore.js';
+import { buildEmptyDatabase, isStoreSuspendedError, persistenceMode, storageMessage, writeEnvelope } from '../../server-lib/blobStore.js';
 import { jsonResponse } from '../../server-lib/http.js';
 
 export async function POST(): Promise<Response> {
@@ -20,6 +20,9 @@ export async function POST(): Promise<Response> {
       version,
     });
   } catch (error: any) {
-    return jsonResponse({ error: 'Gagal mengosongkan data', details: error?.message }, 500);
+    return jsonResponse(
+      { error: 'Gagal mengosongkan data', details: error?.message, suspended: isStoreSuspendedError(error) },
+      500
+    );
   }
 }
