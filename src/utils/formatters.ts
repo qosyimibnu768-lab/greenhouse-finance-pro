@@ -16,6 +16,13 @@ export function formatNumber(value: number | null | undefined, decimals = 0): st
   }).format(value);
 }
 
+// Untuk jumlah hari (mendukung setengah hari, mis. 2,5 — tidak dibulatkan ke 3)
+export function formatDays(value: number | null | undefined): string {
+  const n = Number(value);
+  if (value === null || value === undefined || isNaN(n)) return '0';
+  return formatNumber(n, Number.isInteger(n) ? 0 : 1);
+}
+
 export function formatDate(dateString: string | null | undefined): string {
   if (!dateString) return '-';
   try {

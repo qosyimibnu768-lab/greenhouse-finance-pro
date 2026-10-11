@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { useGreenhouse } from '../../context/GreenhouseContext';
-import { formatCurrency, formatDate, formatNumber } from '../../utils/formatters';
+import { formatCurrency, formatDate, formatDays, formatNumber } from '../../utils/formatters';
+import { terbilang } from '../../utils/terbilang';
 import { buildConstructionSlipHtml, buildKasbonSlipHtml, ConstructionSlipData, openPrintWindow } from '../../utils/slipRenderer';
 import { RegisterStaffModal } from '../HRPayroll/RegisterStaffModal';
 import { AttendanceRecord, DebtReceivable, Employee, Investment } from '../../types';
@@ -288,6 +289,22 @@ export const ConstructionHRPage: React.FC = () => {
 
   const payWorker = workers.find((w) => w.id === payWorkerId) || null;
   const payUnpaidDays = payWorker ? unpaidDaysFor(payWorker.id, payDate) : 0;
+  const payUnpaidRecords = useMemo(() => {
+    if (!payWorker) return [] as AttendanceRecord[];
+    return (db.attendances || [])
+      .filter(
+        (a) =>
+          a.employeeId === payWorker.id &&
+          !a.wagePaid &&
+          (a.date || '') <= payDate &&
+          (a.status === 'Hadir' || a.status === 'Setengah Hari')
+      )
+      .sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+  }, [db.attendances, payWorker, payDate]);
+  const payFullDays = payUnpaidRecords.filter((a) => a.status === 'Hadir').length;
+  const payHalfDays = payUnpaidRecords.filter((a) => a.status === 'Setengah Hari').length;
+  const payPeriodFrom = payUnpaidRecords.length ? payUnpaidRecords[0].date : '';
+  const payPeriodTo = payUnpaidRecords.length ? payUnpaidRecords[payUnpaidRecords.length - 1].date : '';
   const payKasbonOutstanding = payWorker ? kasbonOutstandingFor(payWorker.name) : 0;
   const kasbonWorker = workers.find((w) => w.id === kasbonWorkerId) || null;
 
@@ -338,9 +355,12 @@ export const ConstructionHRPage: React.FC = () => {
     const baseAmount = Math.round(days * rate);
     const overtimeAmount = Math.round(overtimeHours * overtimeRate);
     const total = baseAmount + overtimeAmount;
+    const periodTxt = payPeriodFrom
+      ? ` (${formatDate(payPeriodFrom)} s/d ${formatDate(payPeriodTo || payPeriodFrom)})`
+      : '';
     const baseNote = payNote.trim()
       ? `${payWorker.name} - ${payNote.trim()}`
-      : `Upah ${payWorker.name} ${days} hari`;
+      : `Upah ${payWorker.name} ${formatDays(days)} hari${periodTxt}`;
     const ok = await addInvestment({
       date: payDate,
       category: 'Pembangunan',
@@ -379,22 +399,16 @@ export const ConstructionHRPage: React.FC = () => {
     }
 
     // Tandai absensi yang tercakup pembayaran ini sebagai sudah dibayar.
+    // Hanya hari yang SUDAH diabsen (Hadir = 1, Setengah Hari = 0,5) dan belum dibayar
+    // yang dihitung — pembayaran pada tanggal yang belum diabsen tetap menghitung
+    // hari-hari sebelumnya.
     // Dilakukan lewat efek setelah state investasi tersimpan (menghindari lost-update).
     if (markAttendance) {
-      const unpaidRecords = (db.attendances || [])
-        .filter(
-          (a) =>
-            a.employeeId === payWorker.id &&
-            !a.wagePaid &&
-            (a.date || '') <= payDate &&
-            (a.status === 'Hadir' || a.status === 'Setengah Hari')
-        )
-        .sort((a, b) => (a.date || '').localeCompare(b.date || ''));
       let remaining = days;
       const ids: string[] = [];
-      for (const rec of unpaidRecords) {
+      for (const rec of payUnpaidRecords) {
         const val = dayValue(rec.status);
-        if (remaining >= val) {
+        if (remaining + 1e-9 >= val) {
           ids.push(rec.id);
           remaining -= val;
         } else {
@@ -406,7 +420,7 @@ export const ConstructionHRPage: React.FC = () => {
       }
     }
 
-    addToast(`Upah ${payWorker.name} (${days} hari) tercatat sebagai Investasi Pembangunan`, 'success');
+    addToast(`Upah ${payWorker.name} (${formatDays(days)} hari) tercatat sebagai Investasi Pembangunan`, 'success');
     setPaidResult({
       id: `NOTA-${Date.now().toString().slice(-6)}`,
       date: payDate,
@@ -416,6 +430,8 @@ export const ConstructionHRPage: React.FC = () => {
       unit: 'Hari',
       rate,
       total,
+      periodFrom: payPeriodFrom || undefined,
+      periodTo: payPeriodTo || undefined,
       overtimeHours,
       overtimeRate,
       overtimeAmount,
@@ -531,7 +547,7 @@ export const ConstructionHRPage: React.FC = () => {
         i.date,
         matchedWorkerNames(i).join(', ') || i.supplier || '-',
         i.itemName || '',
-        `${formatNumber(Number(i.quantity) || 0)} ${i.unit || ''}`,
+        `${formatDays(Number(i.quantity) || 0)} ${i.unit || ''}`,
         Number(i.unitPrice) || 0,
         Number(i.totalAmount) || 0,
         i.notes || '',
@@ -682,7 +698,7 @@ export const ConstructionHRPage: React.FC = () => {
                       <p className="text-xs font-bold text-slate-900">{w.name}</p>
                       <p className="text-[10px] text-slate-500">
                         {w.position} · Rp {formatNumber(w.dailyRate || 0)}/hari
-                        {unpaid > 0 && <span className="text-amber-700 font-semibold"> · {formatNumber(unpaid)} hari belum dibayar</span>}
+                        {unpaid > 0 && <span className="text-amber-700 font-semibold"> · {formatDays(unpaid)} hari belum dibayar</span>}
                       </p>
                     </div>
                   </div>
@@ -816,14 +832,14 @@ export const ConstructionHRPage: React.FC = () => {
                   </div>
                   <div className="flex justify-between text-slate-500">
                     <span>
-                      Hadir bulan ini: <b className="text-slate-700">{formatNumber(monthDaysFor(w.id))} hari</b>
+                      Hadir bulan ini: <b className="text-slate-700">{formatDays(monthDaysFor(w.id))} hari</b>
                     </span>
                     <span>{lastDate ? `Terakhir: ${formatDate(lastDate)}` : 'Belum dibayar'}</span>
                   </div>
                   <div className="flex justify-between text-slate-500">
                     <span>{entries} catatan pembayaran</span>
                     <span className={unpaidDaysFor(w.id, today) > 0 ? 'text-amber-700 font-semibold' : ''}>
-                      {formatNumber(unpaidDaysFor(w.id, today))} hari belum dibayar
+                      {formatDays(unpaidDaysFor(w.id, today))} hari belum dibayar
                     </span>
                   </div>
                   {kasbonOutstandingFor(w.name) > 0 && (
@@ -947,7 +963,7 @@ export const ConstructionHRPage: React.FC = () => {
                       <td className="p-2 whitespace-nowrap">{formatDate(inv.date)}</td>
                       <td className="p-2 font-sans text-slate-700">{inv.itemName}</td>
                       <td className="p-2 text-right whitespace-nowrap">
-                        {formatNumber(Number(inv.quantity) || 0)} {inv.unit}
+                        {formatDays(Number(inv.quantity) || 0)} {inv.unit}
                       </td>
                       <td className="p-2 text-right whitespace-nowrap">{formatCurrency(inv.unitPrice)}</td>
                       <td className="p-2 text-right font-bold text-slate-900 whitespace-nowrap">
@@ -1098,13 +1114,19 @@ export const ConstructionHRPage: React.FC = () => {
                   <div>
                     <p className="font-bold">Upah tercatat sebagai Investasi (Pembangunan)</p>
                     <p className="mt-0.5">
-                      {paidResult.workerName} · {formatNumber(paidResult.days)} hari ×{' '}
+                      {paidResult.workerName} · {formatDays(paidResult.days)} hari ×{' '}
                       {formatCurrency(paidResult.rate)}
                       {(paidResult.overtimeAmount || 0) > 0
                         ? ` + lembur ${formatNumber(paidResult.overtimeHours || 0)} jam × ${formatCurrency(paidResult.overtimeRate || 0)}`
                         : ''}{' '}
                       = <b>{formatCurrency(paidResult.total)}</b>
                     </p>
+                    {paidResult.periodFrom && (
+                      <p className="mt-0.5">
+                        Periode: {formatDate(paidResult.periodFrom)} –{' '}
+                        {formatDate(paidResult.periodTo || paidResult.periodFrom)}
+                      </p>
+                    )}
                   </div>
                 </div>
                 <div className="flex items-center justify-end gap-2">
@@ -1125,12 +1147,31 @@ export const ConstructionHRPage: React.FC = () => {
               </div>
             ) : (
               <div className="p-5 space-y-4 text-xs">
-                {payUnpaidDays > 0 && (
+                {payUnpaidRecords.length > 0 ? (
                   <div className="p-3 rounded-xl bg-blue-50 border border-blue-200 text-blue-900 flex items-start gap-2">
                     <CalendarDays className="w-4 h-4 mt-0.5 shrink-0" />
                     <span>
-                      Dari absensi: <b>{formatNumber(payUnpaidDays)} hari</b> belum dibayar (otomatis diisikan ke
-                      Jumlah Hari, bisa diubah).
+                      Periode belum dibayar:{' '}
+                      <b>
+                        {formatDate(payPeriodFrom)} – {formatDate(payPeriodTo)}
+                      </b>{' '}
+                      · <b>{formatDays(payUnpaidDays)} hari</b>
+                      {payHalfDays > 0 && (
+                        <>
+                          {' '}
+                          ({payFullDays} penuh + {payHalfDays} setengah hari)
+                        </>
+                      )}{' '}
+                      — otomatis diisikan ke Jumlah Hari. Pembayaran pada tanggal yang belum diabsen tetap menghitung
+                      hari-hari sebelumnya.
+                    </span>
+                  </div>
+                ) : (
+                  <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 text-amber-900 flex items-start gap-2">
+                    <CalendarDays className="w-4 h-4 mt-0.5 shrink-0" />
+                    <span>
+                      Belum ada absensi (Hadir/½ Hari) yang belum dibayar sampai <b>{formatDate(payDate)}</b>. Jumlah
+                      hari diisi manual — hanya absensi yang sudah tercatat yang akan ditandai lunas.
                     </span>
                   </div>
                 )}
@@ -1145,7 +1186,19 @@ export const ConstructionHRPage: React.FC = () => {
                     />
                   </div>
                   <div>
-                    <label className="font-semibold text-slate-700 block mb-1">Jumlah Hari</label>
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="font-semibold text-slate-700">Jumlah Hari</label>
+                      {payUnpaidRecords.length > 0 && (
+                        <button
+                          type="button"
+                          onClick={() => setPayDays(String(payUnpaidDays))}
+                          className="text-[10px] font-bold text-emerald-700 hover:text-emerald-900 transition cursor-pointer"
+                          title="Isi jumlah hari dari absensi yang belum dibayar (½ hari = 0,5)"
+                        >
+                          isi dari absensi
+                        </button>
+                      )}
+                    </div>
                     <input
                       type="number"
                       min="0.5"
@@ -1193,6 +1246,15 @@ export const ConstructionHRPage: React.FC = () => {
                           (Number(payOvertimeHours) || 0) * (Number(payOvertimeRate) || 0)
                       )}
                     </div>
+                    <p className="text-[10px] text-slate-500 mt-1 leading-snug">
+                      Terbilang:{' '}
+                      <b className="text-slate-700">
+                        {terbilang(
+                          (Number(payDays) || 0) * (Number(payRate) || 0) +
+                            (Number(payOvertimeHours) || 0) * (Number(payOvertimeRate) || 0)
+                        )}
+                      </b>
+                    </p>
                   </div>
                 </div>
 
@@ -1215,7 +1277,7 @@ export const ConstructionHRPage: React.FC = () => {
                     className="accent-emerald-600"
                   />
                   <span>
-                    Tandai absensi yang tercakup ({formatNumber(Math.min(payUnpaidDays, Number(payDays) || 0))} hari)
+                    Tandai absensi yang tercakup ({formatDays(Math.min(payUnpaidDays, Number(payDays) || 0))} hari)
                     sebagai <b>sudah dibayar</b>
                   </span>
                 </label>
@@ -1447,7 +1509,7 @@ export const ConstructionHRPage: React.FC = () => {
                   <span
                     className={`font-black font-mono ${detailStats.unpaidDays > 0 ? 'text-amber-700' : 'text-slate-900'}`}
                   >
-                    {formatNumber(detailStats.unpaidDays)} hari
+                    {formatDays(detailStats.unpaidDays)} hari
                   </span>
                 </div>
                 <div className="p-3 rounded-xl border border-slate-200 bg-slate-50">

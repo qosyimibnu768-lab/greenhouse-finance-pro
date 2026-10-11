@@ -1,5 +1,5 @@
 import { PayrollRecord } from '../types';
-import { formatCurrency, formatDate, formatNumber } from './formatters';
+import { formatCurrency, formatDate, formatDays, formatNumber } from './formatters';
 import { terbilang } from './terbilang';
 
 // ===== Identitas perusahaan (dipakai di semua nota) =====
@@ -25,6 +25,8 @@ export interface ConstructionSlipData {
   overtimeRate?: number;
   overtimeAmount?: number;
   note?: string;
+  periodFrom?: string;
+  periodTo?: string;
 }
 
 // Logo dokumen memakai aset gambar /logo.png (lihat .logo pada BASE_CSS).
@@ -310,7 +312,12 @@ export function buildConstructionSlipHtml(d: ConstructionSlipData): string {
         <div class="card">
           <h3>RINCIAN PEKERJAAN</h3>
           <div class="kv"><span class="k">Tanggal Bayar</span><span class="v">${formatDate(d.date)}</span></div>
-          <div class="kv"><span class="k">Jumlah ${d.unit}</span><span class="v">${formatNumber(d.days)} ${d.unit}</span></div>
+          ${
+            d.periodFrom
+              ? `<div class="kv"><span class="k">Periode Absensi</span><span class="v">${formatDate(d.periodFrom)} – ${formatDate(d.periodTo || d.periodFrom)}</span></div>`
+              : ''
+          }
+          <div class="kv"><span class="k">Jumlah ${d.unit}</span><span class="v">${formatDays(d.days)} ${d.unit}</span></div>
           <div class="kv"><span class="k">Tarif / ${d.unit}</span><span class="v">${formatCurrency(d.rate)}</span></div>
           <div class="kv"><span class="k">Lembur</span><span class="v">${overtimeInfo}</span></div>
           ${d.note ? `<div class="kv"><span class="k">Catatan</span><span class="v">${d.note}</span></div>` : ''}
@@ -323,7 +330,7 @@ export function buildConstructionSlipHtml(d: ConstructionSlipData): string {
             <thead><tr><th>Komponen</th><th class="money" style="width:36%">Jumlah</th></tr></thead>
             <tbody>
               <tr>
-                <td>Upah ${d.position || 'Tenaga Konstruksi'}<br/><span style="color:#64748b;font-size:11px">${formatNumber(d.days)} ${d.unit} × ${formatCurrency(d.rate)}</span></td>
+                <td>Upah ${d.position || 'Tenaga Konstruksi'}<br/><span style="color:#64748b;font-size:11px">${formatDays(d.days)} ${d.unit} × ${formatCurrency(d.rate)}</span></td>
                 <td class="money" style="font-weight:800">${formatCurrency(baseAmount)}</td>
               </tr>
               ${overtimeRow}
