@@ -361,6 +361,40 @@ export const ConstructionHRPage: React.FC = () => {
     const baseNote = payNote.trim()
       ? `${payWorker.name} - ${payNote.trim()}`
       : `Upah ${payWorker.name} ${formatDays(days)} hari${periodTxt}`;
+    // Hitung absensi yang tercakup pembayaran ini (Hadir = 1, Setengah Hari = 0,5).
+    // Dipakai untuk menandai lunas sekaligus dicetak sebagai rincian tanggal di nota.
+    // Hanya hari yang SUDAH diabsen yang dihitung — pembayaran pada tanggal yang
+    // belum diabsen tetap menghitung hari-hari sebelumnya.
+    let remaining = days;
+    const coveredRecords: AttendanceRecord[] = [];
+    for (const rec of payUnpaidRecords) {
+      const val = dayValue(rec.status);
+      if (remaining + 1e-9 >= val) {
+        coveredRecords.push(rec);
+        remaining -= val;
+      } else {
+        break;
+      }
+    }
+
+    // Rincian absensi untuk nota: tanggal masuk/setengah hari yang dibayar +
+    // tanggal ALPA dalam rentang periode ini (sampai tanggal bayar).
+    const periodStart = coveredRecords.length > 0 ? coveredRecords[0].date : payPeriodFrom || payDate;
+    const alpaRecords = (db.attendances || []).filter(
+      (a) =>
+        a.employeeId === payWorker.id &&
+        (a.status === 'Alpha' || (a.status as string) === 'Alpa') &&
+        (a.date || '') >= periodStart &&
+        (a.date || '') <= payDate
+    );
+    const attendanceList = [
+      ...coveredRecords.map((r) => ({
+        date: r.date,
+        status: r.status as 'Hadir' | 'Setengah Hari',
+      })),
+      ...alpaRecords.map((r) => ({ date: r.date, status: 'Alpa' as const })),
+    ].sort((a, b) => (a.date || '').localeCompare(b.date || ''));
+
     const ok = await addInvestment({
       date: payDate,
       category: 'Pembangunan',
@@ -372,6 +406,7 @@ export const ConstructionHRPage: React.FC = () => {
       tunnel: 'Semua Greenhouse',
       notes: overtimeAmount > 0 ? `${baseNote} | Lembur ${overtimeHours} jam` : baseNote,
       totalAmountOverride: total,
+      attendance: attendanceList.length > 0 ? attendanceList : undefined,
     });
     setIsPaying(false);
     if (!ok) return;
@@ -398,22 +433,6 @@ export const ConstructionHRPage: React.FC = () => {
       }
     }
 
-    // Hitung absensi yang tercakup pembayaran ini (Hadir = 1, Setengah Hari = 0,5).
-    // Dipakai untuk menandai lunas sekaligus dicetak sebagai rincian tanggal di nota.
-    // Hanya hari yang SUDAH diabsen yang dihitung — pembayaran pada tanggal yang
-    // belum diabsen tetap menghitung hari-hari sebelumnya.
-    let remaining = days;
-    const coveredRecords: AttendanceRecord[] = [];
-    for (const rec of payUnpaidRecords) {
-      const val = dayValue(rec.status);
-      if (remaining + 1e-9 >= val) {
-        coveredRecords.push(rec);
-        remaining -= val;
-      } else {
-        break;
-      }
-    }
-
     // Tandai lunas lewat efek setelah state investasi tersimpan (menghindari lost-update).
     if (markAttendance && coveredRecords.length > 0) {
       setPendingWagePaid({
@@ -421,24 +440,6 @@ export const ConstructionHRPage: React.FC = () => {
         beforeCount: (db.investments || []).length,
       });
     }
-
-    // Rincian absensi untuk nota: tanggal masuk/setengah hari yang dibayar +
-    // tanggal ALPA dalam rentang periode ini (sampai tanggal bayar).
-    const periodStart = coveredRecords.length > 0 ? coveredRecords[0].date : payPeriodFrom || payDate;
-    const alpaRecords = (db.attendances || []).filter(
-      (a) =>
-        a.employeeId === payWorker.id &&
-        (a.status === 'Alpha' || (a.status as string) === 'Alpa') &&
-        (a.date || '') >= periodStart &&
-        (a.date || '') <= payDate
-    );
-    const attendanceList = [
-      ...coveredRecords.map((r) => ({
-        date: r.date,
-        status: r.status as 'Hadir' | 'Setengah Hari',
-      })),
-      ...alpaRecords.map((r) => ({ date: r.date, status: 'Alpa' as const })),
-    ].sort((a, b) => (a.date || '').localeCompare(b.date || ''));
 
     addToast(`Upah ${payWorker.name} (${formatDays(days)} hari) tercatat sebagai Investasi Pembangunan`, 'success');
     setPaidResult({
@@ -477,6 +478,7 @@ export const ConstructionHRPage: React.FC = () => {
           Math.round((Number(inv.totalAmount) || 0) - (Number(inv.quantity) || 0) * (Number(inv.unitPrice) || 0))
         ),
         note: inv.notes,
+        attendance: inv.attendance,
       })
     );
   };

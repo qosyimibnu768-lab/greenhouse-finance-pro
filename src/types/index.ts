@@ -93,6 +93,8 @@ export interface Investment {
   supplier?: string;
   tunnel: TunnelType;
   notes?: string;
+  /** Rincian absensi saat upah dibayarkan (untuk cetak ulang nota upah konstruksi). */
+  attendance?: Array<{ date: string; status: 'Hadir' | 'Setengah Hari' | 'Alpa' }>;
 }
 
 export interface Asset {
