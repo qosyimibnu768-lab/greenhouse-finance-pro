@@ -96,8 +96,8 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
             <img
               src="/logo.png"
-              alt="Tarno Jaya Farm"
-              className="w-8 h-8 sm:w-9 sm:h-9 rounded-full ring-1 ring-emerald-600/20 shadow-xs shrink-0"
+              alt="Rayyan Crown Garden"
+              className="w-8 h-8 sm:w-9 sm:h-9 rounded-full ring-1 ring-amber-500/30 shadow-xs shrink-0"
             />
             <div className="min-w-0">
               <div className="flex items-center gap-2">

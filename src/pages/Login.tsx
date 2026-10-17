@@ -90,11 +90,17 @@ export const LoginPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen w-full bg-gradient-to-br from-slate-950 via-slate-900 to-emerald-950 flex flex-col justify-center items-center p-4 sm:p-6 relative overflow-hidden font-sans">
-      {/* Background Gradients & Accents */}
-      <div className="absolute inset-0 bg-[radial-gradient(#10b981_1px,transparent_1px)] [background-size:24px_24px] opacity-15 pointer-events-none" />
-      <div className="absolute -top-32 -left-32 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute -bottom-32 -right-32 w-96 h-96 bg-teal-500/10 rounded-full blur-3xl pointer-events-none" />
+    <div className="min-h-screen w-full bg-gradient-to-br from-[#02110a] via-[#052a1c] to-[#0c3f2c] flex flex-col justify-center items-center p-4 sm:p-6 relative overflow-hidden font-sans">
+      {/* Background: logo besar sebagai watermark + aksen emas/hijau */}
+      <div className="absolute inset-0 bg-[radial-gradient(#d4af37_1px,transparent_1px)] [background-size:24px_24px] opacity-10 pointer-events-none" />
+      <img
+        src="/icon-512.png"
+        alt=""
+        aria-hidden="true"
+        className="pointer-events-none select-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[min(92vw,700px)] opacity-[0.14] blur-[1.5px]"
+      />
+      <div className="absolute -top-32 -left-32 w-96 h-96 bg-amber-400/10 rounded-full blur-3xl pointer-events-none" />
+      <div className="absolute -bottom-32 -right-32 w-96 h-96 bg-emerald-400/10 rounded-full blur-3xl pointer-events-none" />
 
       <div className="w-full max-w-md z-10 animate-in fade-in zoom-in-95 duration-200">
         <div className="bg-white/95 backdrop-blur-md rounded-3xl shadow-2xl border border-white/20 p-6 sm:p-8 space-y-6">
@@ -103,12 +109,12 @@ export const LoginPage: React.FC = () => {
             <div className="inline-flex items-center justify-center mb-1">
               <img
                 src="/logo.png"
-                alt="Tarno Jaya Farm"
-                className="w-16 h-16 rounded-full shadow-lg shadow-emerald-900/30 ring-2 ring-emerald-600/20"
+                alt="Rayyan Crown Garden"
+                className="w-20 h-20 rounded-full shadow-xl shadow-black/30 ring-2 ring-amber-400/40"
               />
             </div>
             <div className="space-y-1">
-              <div className="flex items-center justify-center gap-1.5 text-xs font-bold uppercase tracking-wider text-emerald-700">
+              <div className="flex items-center justify-center gap-1.5 text-xs font-bold uppercase tracking-wider text-amber-700">
                 <Sparkles className="w-3.5 h-3.5" />
                 <span>Greenhouse Finance Pro</span>
               </div>

@@ -139,7 +139,7 @@ export const Navigation: React.FC<NavigationProps> = ({
         <div className="flex items-center gap-3">
           <img
             src="/logo.png"
-            alt="Tarno Jaya Farm"
+            alt="Rayyan Crown Garden"
             className="w-10 h-10 rounded-full shadow-md shadow-emerald-950/40"
           />
           <div>

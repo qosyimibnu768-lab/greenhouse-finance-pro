@@ -535,7 +535,7 @@ export const ConstructionHRPage: React.FC = () => {
 
   const exportWageHistoryCsv = () => {
     const rows: (string | number)[][] = [
-      ['GREENHOUSE FINANCE PRO — TARNO JAYA FARM'],
+      ['GREENHOUSE FINANCE PRO — RAYYAN CROWN GARDEN'],
       ['RIWAYAT PEMBAYARAN UPAH KONSTRUKSI'],
       ['Diekspor', new Date().toLocaleString('id-ID')],
       ['Periode', wageMonthFilter === 'all' ? 'Semua Bulan' : monthLabel(wageMonthFilter)],
@@ -559,7 +559,7 @@ export const ConstructionHRPage: React.FC = () => {
 
   const exportWageRecapCsv = () => {
     const rows: (string | number)[][] = [
-      ['GREENHOUSE FINANCE PRO — TARNO JAYA FARM'],
+      ['GREENHOUSE FINANCE PRO — RAYYAN CROWN GARDEN'],
       ['REKAP UPAH PER PEKERJA KONSTRUKSI'],
       ['Diekspor', new Date().toLocaleString('id-ID')],
       [],

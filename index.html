@@ -9,7 +9,7 @@
     <meta property="og:description" content="Aplikasi profesional manajemen keuangan, investasi, siklus tanam, panen, stok bahan, presensi & payroll staf, serta analisis BEP/ROI khusus perkebunan greenhouse melon Premium modern." />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="theme-color" content="#064e3b" />
+    <meta name="theme-color" content="#062a1e" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
     <meta name="apple-mobile-web-app-title" content="Greenhouse Finance Pro" />
@@ -19,23 +19,25 @@
     <link rel="manifest" href="/manifest.webmanifest" />
     <link rel="preload" as="image" href="/logo.png" />
     <style>
-      #splash{position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;background:linear-gradient(160deg,#022c22 0%,#064e3b 45%,#0f766e 100%);transition:opacity .45s ease,visibility .45s ease}
+      #splash{position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;overflow:hidden;background:linear-gradient(160deg,#02110a 0%,#062a1e 45%,#0c3f2c 100%);transition:opacity .45s ease,visibility .45s ease}
+      #splash .sp-bg{position:absolute;width:min(92vmin,760px);height:min(92vmin,760px);opacity:.15;filter:blur(2px);pointer-events:none;user-select:none}
       #splash.hide{opacity:0;visibility:hidden;pointer-events:none}
-      #splash img{width:96px;height:96px;border-radius:50%;box-shadow:0 12px 42px rgba(0,0,0,.45);animation:sp-pop .55s ease}
-      #splash h1{margin:2px 0 0;color:#fff;font:800 17px/1.25 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;letter-spacing:.6px}
-      #splash p{margin:0;color:#a7f3d0;font:500 12px/1.3 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;letter-spacing:.3px}
-      #splash .sp-bar{width:128px;height:4px;border-radius:999px;background:rgba(255,255,255,.16);overflow:hidden;margin-top:8px}
-      #splash .sp-bar i{display:block;height:100%;width:42%;border-radius:999px;background:#10b981;animation:sp-slide 1.1s ease-in-out infinite}
+      #splash .sp-logo{position:relative;width:104px;height:104px;border-radius:50%;box-shadow:0 14px 44px rgba(0,0,0,.5),0 0 0 2px rgba(212,175,55,.38);animation:sp-pop .55s ease}
+      #splash h1{position:relative;margin:2px 0 0;color:#fff;font:800 17px/1.25 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;letter-spacing:.6px}
+      #splash p{position:relative;margin:0;color:#e8d8a6;font:500 12px/1.3 ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;letter-spacing:.3px}
+      #splash .sp-bar{position:relative;width:132px;height:4px;border-radius:999px;background:rgba(255,255,255,.14);overflow:hidden;margin-top:8px}
+      #splash .sp-bar i{display:block;height:100%;width:42%;border-radius:999px;background:linear-gradient(90deg,#a97b18,#f3d98a,#a97b18);animation:sp-slide 1.1s ease-in-out infinite}
       @keyframes sp-slide{0%{transform:translateX(-120%)}100%{transform:translateX(330%)}}
       @keyframes sp-pop{0%{transform:scale(.86);opacity:0}100%{transform:scale(1);opacity:1}}
-      @media (prefers-reduced-motion: reduce){#splash img{animation:none}#splash .sp-bar i{animation:none;width:100%}}
+      @media (prefers-reduced-motion: reduce){#splash .sp-logo{animation:none}#splash .sp-bar i{animation:none;width:100%}}
     </style>
   </head>
   <body class="bg-slate-50 text-slate-900 antialiased selection:bg-emerald-500 selection:text-white">
     <div id="splash">
-      <img src="/logo.png" alt="Tarno Jaya Farm" />
+      <img class="sp-bg" src="/icon-512.png" alt="" aria-hidden="true" />
+      <img class="sp-logo" src="/logo.png" alt="Rayyan Crown Garden" />
       <h1>GREENHOUSE FINANCE PRO</h1>
-      <p>Tarno Jaya Farm · Perkebunan Melon Premium</p>
+      <p>Rayyan Crown Garden · Perkebunan Melon Premium</p>
       <div class="sp-bar"><i></i></div>
     </div>
     <div id="root"></div>

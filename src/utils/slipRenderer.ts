@@ -5,7 +5,7 @@ import { terbilang } from './terbilang';
 // ===== Identitas perusahaan (dipakai di semua nota) =====
 export const SLIP_COMPANY = {
   name: 'GREENHOUSE FINANCE PRO',
-  farm: 'Tarno Jaya Farm',
+  farm: 'Rayyan Crown Garden',
   tagline: 'Perkebunan Hidroponik Melon Premium',
   address: 'Sistem Akuntansi, HPP & Manajemen Operasional Greenhouse Melon',
   ownerName: 'Ibnu (Owner)',
@@ -120,7 +120,7 @@ function shell(title: string, body: string): string {
 function headerBand(docTitle: string, docNo: string, periodLine: string, badge: { text: string; color: string }): string {
   return `<div class="band">
   <div class="brand">
-    <div class="logo"><img src="/logo.png" alt="Tarno Jaya Farm"/></div>
+    <div class="logo"><img src="/logo.png" alt="Rayyan Crown Garden"/></div>
     <div>
       <h1>${SLIP_COMPANY.name}</h1>
       <p>${SLIP_COMPANY.farm}</p>
