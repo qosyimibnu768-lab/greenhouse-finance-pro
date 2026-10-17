@@ -27,6 +27,8 @@ export interface ConstructionSlipData {
   note?: string;
   periodFrom?: string;
   periodTo?: string;
+  /** Rincian absensi (tanggal masuk / setengah hari / alpa) untuk dicetak di nota. */
+  attendance?: Array<{ date: string; status: 'Hadir' | 'Setengah Hari' | 'Alpa' }>;
 }
 
 // Logo dokumen memakai aset gambar /logo.png (lihat .logo pada BASE_CSS).
@@ -63,6 +65,9 @@ const BASE_CSS = `
   .kv{display:flex;justify-content:space-between;gap:10px;font-size:12px;padding:3.5px 0}
   .kv .k{color:var(--mut)}
   .kv .v{font-weight:700;text-align:right}
+  .att .kv{align-items:flex-start}
+  .att .k{padding-top:2px;white-space:nowrap}
+  .att .v{line-height:1.55;max-width:76%}
   .chips{display:grid;grid-template-columns:repeat(6,1fr);gap:8px;margin:14px 0 0}
   .chip{border:1px solid var(--ln);border-radius:10px;padding:8px 6px;text-align:center;background:#fff}
   .chip b{display:block;font-size:14px}
@@ -271,6 +276,15 @@ export function buildPayrollSlipHtml(record: PayrollRecord): string {
 // ============================================================
 // NOTA UPAH KONSTRUKSI (HR Konstruksi)
 // ============================================================
+const SHORT_MONTHS_ID = ['Jan', 'Feb', 'Mar', 'Apr', 'Mei', 'Jun', 'Jul', 'Agu', 'Sep', 'Okt', 'Nov', 'Des'];
+
+function formatShortDay(dateString?: string): string {
+  if (!dateString) return '-';
+  const date = new Date(`${dateString}T00:00:00`);
+  if (isNaN(date.getTime())) return dateString;
+  return `${date.getDate()} ${SHORT_MONTHS_ID[date.getMonth()]}`;
+}
+
 export function buildConstructionSlipHtml(d: ConstructionSlipData): string {
   const baseAmount = Math.round((Number(d.days) || 0) * (Number(d.rate) || 0));
   const overtimeHours = Number(d.overtimeHours) || 0;
@@ -297,6 +311,34 @@ export function buildConstructionSlipHtml(d: ConstructionSlipData): string {
     overtimeAmount > 0
       ? `${overtimeHours > 0 ? `${formatNumber(overtimeHours)} jam` : 'Ada'}${overtimeRate > 0 ? ` × ${formatCurrency(overtimeRate)}` : ''}`
       : '-';
+
+  const attendanceCard = (() => {
+    const list = Array.isArray(d.attendance)
+      ? [...d.attendance].filter((a) => a && a.date).sort((a, b) => a.date.localeCompare(b.date))
+      : [];
+    if (list.length === 0) return '';
+
+    const hadir = list.filter((a) => a.status === 'Hadir').map((a) => formatShortDay(a.date));
+    const half = list
+      .filter((a) => a.status === 'Setengah Hari')
+      .map((a) => `${formatShortDay(a.date)} (½)`);
+    const alpa = list.filter((a) => a.status === 'Alpa').map((a) => formatShortDay(a.date));
+
+    const rows = [
+      hadir.length
+        ? `<div class="kv"><span class="k">Masuk (hadir)</span><span class="v" style="color:#065f46">${hadir.join(', ')} <span style="color:#64748b;font-weight:600;font-size:10.5px">(${hadir.length} hari)</span></span></div>`
+        : '',
+      half.length
+        ? `<div class="kv"><span class="k">Setengah hari</span><span class="v" style="color:#b45309">${half.join(', ')} <span style="color:#64748b;font-weight:600;font-size:10.5px">(${formatDays(half.length * 0.5)} hari)</span></span></div>`
+        : '',
+      alpa.length
+        ? `<div class="kv"><span class="k">Alpa (tidak masuk)</span><span class="v" style="color:#b91c1c">${alpa.join(', ')} <span style="color:#64748b;font-weight:600;font-size:10.5px">(${alpa.length} hari)</span></span></div>`
+        : '',
+    ].join('');
+
+    const periodLabel = `${formatShortDay(list[0].date)} – ${formatShortDay(list[list.length - 1].date)}`;
+    return `<div class="card att" style="margin-top:12px"><h3>RINCIAN ABSENSI (${periodLabel})</h3>${rows}</div>`;
+  })();
 
   const body = `
   ${headerBand('NOTA / SLIP UPAH', d.id, `Tanggal: ${formatDate(d.date)}`, { text: 'KONSTRUKSI', color: '#f59e0b' })}
@@ -346,6 +388,7 @@ export function buildConstructionSlipHtml(d: ConstructionSlipData): string {
         </div>
       </div>
     </div>
+    ${attendanceCard}
     <div class="terbilang">Terbilang: <b>${terbilang(total)}</b></div>
     ${ownerSignature()}
     ${footer(d.id)}

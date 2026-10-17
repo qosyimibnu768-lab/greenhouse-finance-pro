@@ -398,27 +398,47 @@ export const ConstructionHRPage: React.FC = () => {
       }
     }
 
-    // Tandai absensi yang tercakup pembayaran ini sebagai sudah dibayar.
-    // Hanya hari yang SUDAH diabsen (Hadir = 1, Setengah Hari = 0,5) dan belum dibayar
-    // yang dihitung — pembayaran pada tanggal yang belum diabsen tetap menghitung
-    // hari-hari sebelumnya.
-    // Dilakukan lewat efek setelah state investasi tersimpan (menghindari lost-update).
-    if (markAttendance) {
-      let remaining = days;
-      const ids: string[] = [];
-      for (const rec of payUnpaidRecords) {
-        const val = dayValue(rec.status);
-        if (remaining + 1e-9 >= val) {
-          ids.push(rec.id);
-          remaining -= val;
-        } else {
-          break;
-        }
-      }
-      if (ids.length > 0) {
-        setPendingWagePaid({ ids, beforeCount: (db.investments || []).length });
+    // Hitung absensi yang tercakup pembayaran ini (Hadir = 1, Setengah Hari = 0,5).
+    // Dipakai untuk menandai lunas sekaligus dicetak sebagai rincian tanggal di nota.
+    // Hanya hari yang SUDAH diabsen yang dihitung — pembayaran pada tanggal yang
+    // belum diabsen tetap menghitung hari-hari sebelumnya.
+    let remaining = days;
+    const coveredRecords: AttendanceRecord[] = [];
+    for (const rec of payUnpaidRecords) {
+      const val = dayValue(rec.status);
+      if (remaining + 1e-9 >= val) {
+        coveredRecords.push(rec);
+        remaining -= val;
+      } else {
+        break;
       }
     }
+
+    // Tandai lunas lewat efek setelah state investasi tersimpan (menghindari lost-update).
+    if (markAttendance && coveredRecords.length > 0) {
+      setPendingWagePaid({
+        ids: coveredRecords.map((r) => r.id),
+        beforeCount: (db.investments || []).length,
+      });
+    }
+
+    // Rincian absensi untuk nota: tanggal masuk/setengah hari yang dibayar +
+    // tanggal ALPA dalam rentang periode ini (sampai tanggal bayar).
+    const periodStart = coveredRecords.length > 0 ? coveredRecords[0].date : payPeriodFrom || payDate;
+    const alpaRecords = (db.attendances || []).filter(
+      (a) =>
+        a.employeeId === payWorker.id &&
+        (a.status === 'Alpha' || (a.status as string) === 'Alpa') &&
+        (a.date || '') >= periodStart &&
+        (a.date || '') <= payDate
+    );
+    const attendanceList = [
+      ...coveredRecords.map((r) => ({
+        date: r.date,
+        status: r.status as 'Hadir' | 'Setengah Hari',
+      })),
+      ...alpaRecords.map((r) => ({ date: r.date, status: 'Alpa' as const })),
+    ].sort((a, b) => (a.date || '').localeCompare(b.date || ''));
 
     addToast(`Upah ${payWorker.name} (${formatDays(days)} hari) tercatat sebagai Investasi Pembangunan`, 'success');
     setPaidResult({
@@ -432,6 +452,7 @@ export const ConstructionHRPage: React.FC = () => {
       total,
       periodFrom: payPeriodFrom || undefined,
       periodTo: payPeriodTo || undefined,
+      attendance: attendanceList.length > 0 ? attendanceList : undefined,
       overtimeHours,
       overtimeRate,
       overtimeAmount,
